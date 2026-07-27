@@ -35,7 +35,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: linux_gcc_64
-          modules: qtquick3d
+          modules: qtquick3d qtshadertools
           cache: true
 
       - name: Install SDL2, xvfb, CMake and Ninja
@@ -110,7 +110,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: linux_gcc_64
-          modules: qtquick3d
+          modules: qtquick3d qtshadertools
           cache: true
 
       - name: Install analyzers, SDL2 and CMake
@@ -157,7 +157,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2022_64
-          modules: qtquick3d
+          modules: qtquick3d qtshadertools
           cache: true
       # Without the MSVC dev environment, Ninja picks up the runner's MinGW
       # g++ and fails to link against the MSVC-built Qt libraries.
@@ -188,7 +188,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: clang_64
-          modules: qtquick3d
+          modules: qtquick3d qtshadertools
           cache: true
       - name: Install CMake and Ninja
         run: python3 -m pip install --break-system-packages --upgrade cmake ninja

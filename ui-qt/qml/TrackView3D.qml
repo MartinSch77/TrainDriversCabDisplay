@@ -9,10 +9,14 @@ import QtQuick3D
 Rectangle {
     id: root
 
-    property real speedKmh: 0
-    property real routePositionM: 0
-    property real gradientPermille: 0
-    property real distanceToTargetM: -1
+    // Bound by the Loader in Main.qml (which falls back to a 2D placeholder
+    // when the QtQuick3D module is unavailable on the target).
+    property var backend: null
+
+    readonly property real speedKmh: backend ? backend.speedKmh : 0
+    readonly property real routePositionM: backend ? backend.routePositionM : 0
+    readonly property real gradientPermille: backend ? backend.gradientPermille : 0
+    readonly property real distanceToTargetM: backend ? backend.distanceToTargetM : -1
 
     radius: Theme.radius
     color: Theme.panel

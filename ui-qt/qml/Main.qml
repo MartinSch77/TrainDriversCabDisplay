@@ -183,13 +183,41 @@ Window {
             Layout.fillHeight: true
             spacing: 10
 
-            TrackView3D {
+            Loader { // 3D line-ahead view; 2D placeholder when QtQuick3D is absent
+                id: trackViewLoader
                 Layout.fillWidth: true
                 Layout.preferredHeight: 240
-                speedKmh: backend.speedKmh
-                routePositionM: backend.routePositionM
-                gradientPermille: backend.gradientPermille
-                distanceToTargetM: backend.distanceToTargetM
+                source: "TrackView3D.qml"
+                onLoaded: if (item.hasOwnProperty("backend")) item.backend = backend
+                onStatusChanged: {
+                    if (status === Loader.Error)
+                        sourceComponent = trackViewFallback
+                }
+            }
+            Component {
+                id: trackViewFallback
+                Rectangle {
+                    radius: Theme.radius
+                    color: Theme.panel
+                    border.color: Theme.line
+                    border.width: Theme.borderWidth
+                    Text {
+                        anchors.top: parent.top
+                        anchors.topMargin: 7
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "LINE AHEAD"
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontSizeSmall
+                        font.letterSpacing: 1
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "3D preview unavailable\n(QtQuick3D not installed)"
+                        horizontalAlignment: Text.AlignHCenter
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSizeBase
+                    }
+                }
             }
             PlanningStrip {
                 Layout.fillWidth: true
