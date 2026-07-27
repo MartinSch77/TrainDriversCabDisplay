@@ -1,0 +1,36 @@
+# Doxygen configuration for RailDeck Pro (only deviations from defaults).
+# Build via tools/make_docs.sh — it refreshes the requirements export and the
+# traceability matrix first, so the docs always ship the current trace state.
+
+PROJECT_NAME           = "RailDeck Pro"
+PROJECT_BRIEF          = "Train driver's cab display with interchangeable Qt Quick and LVGL frontends"
+OUTPUT_DIRECTORY       = docs
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+
+INPUT                  = core \
+                         ui-qt/src \
+                         ui-lvgl/src \
+                         docs/mainpage.md \
+                         docs/requirements.md \
+                         docs/design.md \
+                         docs/test_spec.md \
+                         docs/traceability.md
+FILE_PATTERNS          = *.h *.cpp *.md
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = docs/mainpage.md
+EXCLUDE_PATTERNS       = */build*/* */_deps/*
+
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+WARN_IF_UNDOCUMENTED   = NO
+QUIET                  = YES
+
+HAVE_DOT               = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = .

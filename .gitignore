@@ -1,0 +1,35 @@
+# Build output
+build/
+build-qt/
+build-lvgl/
+build-release/
+build-cov-gcc/
+build-cov-mcdc/
+build-cov-coco/
+build-san/
+build-san-tsan/
+build_axivion/
+dist/
+*.user
+
+# Axivion incremental-analysis state (includes a private shadow Fossil repo)
+.axivion-cache/
+.fslckout
+
+# Local tool state
+.claude/settings.local.json
+__pycache__/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test / coverage / docs artifacts
+coverage/
+test-results/
+analysis-results/
+docs/html/
+docs/traceability.html
+docs/strictdoc/

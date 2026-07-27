@@ -1,0 +1,227 @@
+# CI for RailDeck Pro: build both frontends + tests (with the traceability
+# gate), UI screenshot smoke, AddressSanitizer evidence, and a non-gating
+# static-analysis report.
+#
+# Not run here (by design): valgrind/TSan (slow; run locally via
+# tools/sanitize.sh), coverage (tools/coverage.sh), Doxygen/StrictDoc docs
+# (tools/make_docs.sh), and the Axivion analysis (license-bound, local
+# dashboard). See build_all.sh for the full local pipeline.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_VERSION: "6.10.2"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt (with Quick 3D)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: linux_gcc_64
+          modules: qtquick3d
+          cache: true
+
+      - name: Install SDL2, xvfb, CMake and Ninja
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libsdl2-dev xvfb
+          python3 -m pip install --upgrade cmake ninja
+
+      - name: Configure (both frontends)
+        run: >
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          -DRAILDECK_UI=both
+          -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Run test suite (JUnit per test function)
+        run: ./tools/run_tests.sh build
+
+      - name: Traceability matrix (fails on hard gaps)
+        run: python3 tools/trace_report.py
+
+      - name: UI screenshot smoke (both frontends render headlessly)
+        run: |
+          mkdir -p ci-screenshots
+          QT_QPA_PLATFORM=offscreen ./build/ui-qt/raildeck-qt \
+            --screenshot ci-screenshots/qt-cab.png
+          xvfb-run -a ./build/ui-lvgl/raildeck-lvgl \
+            --screenshot ci-screenshots/lvgl-cab.bmp
+          ls -la ci-screenshots/
+
+      - name: Upload test results, traceability and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-results/
+            docs/traceability.html
+            ci-screenshots/
+
+  sanitize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CMake and Ninja
+        run: python3 -m pip install --upgrade cmake ninja
+
+      # The sanitizer tree builds RAILDECK_UI=core — no Qt/SDL needed.
+      - name: ASan + UBSan over the suite
+        run: ./tools/sanitize.sh asan-ubsan
+
+      - name: Upload sanitizer logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanitizer-logs
+          path: analysis-results/sanitize-*
+
+  static-analysis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt (with Quick 3D)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: linux_gcc_64
+          modules: qtquick3d
+          cache: true
+
+      - name: Install analyzers, SDL2 and CMake
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cppcheck clang-tidy clazy libsdl2-dev
+          python3 -m pip install --upgrade cmake ninja
+
+      # cppcheck loads the whole compile DB, which references the moc autogen
+      # outputs — so the tree must be BUILT, not just configured.
+      - name: Configure + build (compile database for the analyzers)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DRAILDECK_UI=both \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build -j"$(nproc)"
+
+      - name: codespell (typos in comments and docs)
+        run: |
+          pipx install codespell
+          codespell core ui-qt ui-lvgl/src ui-lvgl/lv_conf.h tests design docs/*.md tools *.md *.sh requirements .github
+
+      # Report, don't gate: dashboard-triaged findings must not brick CI while
+      # they are being worked; the local pipeline (build_all.sh) gates hard.
+      - name: cppcheck + clang-tidy + clazy + g++ -fanalyzer
+        continue-on-error: true
+        run: ./tools/static_analysis.sh build
+
+      - name: Upload analysis results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-results
+          path: analysis-results/
+
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt (with Quick 3D)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          modules: qtquick3d
+          cache: true
+      # Without the MSVC dev environment, Ninja picks up the runner's MinGW
+      # g++ and fails to link against the MSVC-built Qt libraries.
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Install CMake and Ninja
+        run: python -m pip install --upgrade cmake ninja
+      # Qt frontend + core only: the LVGL simulator needs SDL2, which the
+      # Windows runner does not provide out of the box.
+      - name: Configure & build
+        shell: bash
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DRAILDECK_UI=qt \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          cmake --build build -j4
+      - name: Tests
+        shell: bash
+        run: cd build && ctest --output-on-failure --timeout 300
+
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt (with Quick 3D)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: clang_64
+          modules: qtquick3d
+          cache: true
+      - name: Install CMake and Ninja
+        run: python3 -m pip install --break-system-packages --upgrade cmake ninja
+      - name: Configure & build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DRAILDECK_UI=qt \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          cmake --build build -j4
+      - name: Tests
+        run: cd build && ctest --output-on-failure --timeout 300
+
+  supply-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: SBOM (syft — SPDX + CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          artifact-name: sbom.spdx.json
+      - name: Vulnerability scan (grype over the repo)
+        uses: anchore/scan-action@v6
+        with:
+          path: .
+          fail-build: true
+          severity-cutoff: critical
+      - name: Repository scan (trivy — vuln, misconfig, secrets)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          exit-code: '1'
+          scanners: vuln,misconfig,secret

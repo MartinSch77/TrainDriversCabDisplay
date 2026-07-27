@@ -1,0 +1,8 @@
+# codespell configuration — typo check over sources, docs and scripts
+# (tools/static_analysis.sh runs it; findings feed the Axivion dashboard).
+[codespell]
+skip = build*,docs/html,docs/strictdoc,.git,coverage,analysis-results,test-results,*.svg,*.png,*.bmp
+# Legitimate identifiers flagged by the dictionary:
+#   AFB     = Automatische Fahr- und Bremssteuerung (cruise control)
+#   Lindau  = station name on the demo route
+ignore-words-list = afb,lindau

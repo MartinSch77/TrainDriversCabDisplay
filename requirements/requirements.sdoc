@@ -1,0 +1,188 @@
+[DOCUMENT]
+TITLE: RailDeck Pro — Software Requirement Specification (SRS)
+UID: SRS-RAILDECK
+
+[GRAMMAR]
+ELEMENTS:
+- TAG: REQUIREMENT
+  FIELDS:
+  - TITLE: UID
+    TYPE: String
+    REQUIRED: True
+  - TITLE: VERIFICATION
+    TYPE: String
+    REQUIRED: True
+  - TITLE: TITLE
+    TYPE: String
+    REQUIRED: True
+  - TITLE: STATEMENT
+    TYPE: String
+    REQUIRED: True
+  RELATIONS:
+  - TYPE: File
+
+[TEXT]
+STATEMENT: >>>
+This document is the single source of truth for the RailDeck Pro requirements
+(requirements-as-code, StrictDoc format). Requirement IDs are stable and
+referenced from the design (``docs/design.md``), the test specification
+(``docs/test_spec.md``), the test implementations (``tests/tst_*.cpp``, marker
+``@relation(REQ-…, scope=function)``) and the generated traceability matrix
+(``docs/traceability.html``). ``docs/requirements.md`` is GENERATED from this
+file by ``tools/make_requirements.sh`` — do not edit it by hand.
+
+Format: ``REQ-F-xxx`` functional, ``REQ-N-xxx`` non-functional. VERIFICATION:
+T = test, A = analysis, I = inspection.
+<<<
+
+[[SECTION]]
+TITLE: Functional requirements
+
+[REQUIREMENT]
+UID: REQ-F-001
+VERIFICATION: T, I
+TITLE: Speed display with permitted ceiling
+STATEMENT: The cab display shall show the current speed on a circular speedometer together with the currently permitted speed; the permitted speed shall never exceed the applicable line speed limit.
+
+[REQUIREMENT]
+UID: REQ-F-002
+VERIFICATION: T, I
+TITLE: Braking-curve supervision towards targets
+STATEMENT: The system shall supervise the speed against braking curves towards lower speed limits and station stops ahead, and shall present the governing target speed and the distance to that target.
+
+[REQUIREMENT]
+UID: REQ-F-003
+VERIFICATION: T
+TITLE: Overspeed warning and brake intervention
+STATEMENT: The system shall raise an overspeed warning when the speed exceeds the permitted speed, and shall apply an automatic brake intervention on gross overspeed that is only released once the speed is back below the permitted speed.
+
+[REQUIREMENT]
+UID: REQ-F-004
+VERIFICATION: T
+TITLE: Vigilance device (SIFA) escalation
+STATEMENT: The vigilance device shall require periodic driver acknowledgement while the train is moving and shall escalate through a visual warning and an audible warning to a penalty brake application when unacknowledged.
+
+[REQUIREMENT]
+UID: REQ-F-005
+VERIFICATION: T
+TITLE: Penalty brake release
+STATEMENT: A vigilance penalty brake application shall only be releasable after the train has come to a standstill and the driver has acknowledged.
+
+[REQUIREMENT]
+UID: REQ-F-006
+VERIFICATION: T
+TITLE: Door release at standstill only
+STATEMENT: Door release commands (per side) shall only be accepted at standstill; released doors shall open for passenger exchange and shall close and lock on the close command.
+
+[REQUIREMENT]
+UID: REQ-F-007
+VERIFICATION: T
+TITLE: Traction interlock with unsecured doors
+STATEMENT: Tractive effort shall be inhibited while any door is not closed and locked.
+
+[REQUIREMENT]
+UID: REQ-F-008
+VERIFICATION: T, I
+TITLE: Passenger announcement (PA)
+STATEMENT: The driver shall be able to open and close a public-address channel to the passengers; a live channel shall be clearly indicated.
+
+[REQUIREMENT]
+UID: REQ-F-009
+VERIFICATION: T, I
+TITLE: Radio link to the control centre
+STATEMENT: The driver shall be able to establish and end a voice-radio call to the traffic control centre; the call state (calling, connected) shall be indicated.
+
+[REQUIREMENT]
+UID: REQ-F-010
+VERIFICATION: T
+TITLE: Pantograph control
+STATEMENT: The driver shall be able to raise and lower the pantograph; with the pantograph lowered there shall be no line voltage, no drawn power and no tractive effort.
+
+[REQUIREMENT]
+UID: REQ-F-011
+VERIFICATION: T
+TITLE: Cruise control (AFB)
+STATEMENT: A cruise control shall hold an adjustable set speed, limited by the permitted speed; the set speed shall be adjustable in steps and clamped to the valid range.
+
+[REQUIREMENT]
+UID: REQ-F-012
+VERIFICATION: T
+TITLE: Emergency brake
+STATEMENT: An emergency brake command shall apply the full emergency brake force until standstill and shall only be releasable at standstill.
+
+[REQUIREMENT]
+UID: REQ-F-013
+VERIFICATION: T, I
+TITLE: Driving advisor
+STATEMENT: A driving advisor shall recommend the energy-efficient action (power, hold, coast, brake) for the current driving situation.
+
+[REQUIREMENT]
+UID: REQ-F-014
+VERIFICATION: T, I
+TITLE: Prioritized alerts
+STATEMENT: Active abnormal conditions (vigilance warnings, overspeed, unsecured doors, lowered pantograph, live communication channels, low air pressure) shall be reported as alerts ordered by severity, most severe first.
+
+[REQUIREMENT]
+UID: REQ-F-015
+VERIFICATION: T, I
+TITLE: Journey information
+STATEMENT: The display shall show the next station with its remaining distance, the service identifier and the current time.
+
+[REQUIREMENT]
+UID: REQ-F-016
+VERIFICATION: T, I
+TITLE: Route data for the planning display
+STATEMENT: The route profile (speed-limit changes, station positions, gradients) shall be available to the frontends for the planning strip and the line-ahead preview.
+
+[REQUIREMENT]
+UID: REQ-F-017
+VERIFICATION: T, I
+TITLE: Physical instrument values
+STATEMENT: The display shall present the pneumatic values (brake pipe, brake cylinder, main reservoir pressure) and the electric values (line voltage, motor current, tractive effort, power, energy) with physically plausible behaviour.
+
+[[/SECTION]]
+
+[[SECTION]]
+TITLE: Non-functional requirements
+
+[REQUIREMENT]
+UID: REQ-N-001
+VERIFICATION: A, I
+TITLE: UI-agnostic simulation core
+STATEMENT: All HMI behaviour shall live in a UI-independent C++ core library; a frontend shall interact with it exclusively through tick(), setLever() and command() and shall render the published state snapshot.
+
+[REQUIREMENT]
+UID: REQ-N-002
+VERIFICATION: I
+TITLE: Interchangeable frontends with equal look and feel
+STATEMENT: The Qt Quick and the LVGL frontend shall provide the same instrument layout, functions and colors, driven by the same core API.
+
+[REQUIREMENT]
+UID: REQ-N-003
+VERIFICATION: A, I
+TITLE: Single-source design tokens
+STATEMENT: All colors, font sizes and key metrics shall be generated from the single source design/theme.json for every frontend; generated token files shall not be edited by hand.
+
+[REQUIREMENT]
+UID: REQ-N-004
+VERIFICATION: T
+TITLE: Deterministic simulation
+STATEMENT: Given the same command and tick sequence, the simulation core shall reproduce the identical state evolution (no wall-clock or randomness dependencies).
+
+[REQUIREMENT]
+UID: REQ-N-005
+VERIFICATION: I
+TITLE: Headless verification support
+STATEMENT: Both frontends shall support automated headless screenshot capture (--screenshot, --screenshot-delay) for visual verification.
+
+[REQUIREMENT]
+UID: REQ-N-006
+VERIFICATION: T
+TITLE: Lightweight simulation tick
+STATEMENT: >>>
+One simulation tick shall execute fast enough for embedded targets —
+sustained well above 20000 ticks per second on a desktop debug build
+(one 30 Hz UI tick budget is 33 ms).
+<<<
+
+[[/SECTION]]

@@ -1,0 +1,77 @@
+# clang-tidy configuration (run via tools/static_analysis.sh over the compile
+# database; clang-tidy works best with compile_commands.json, which the build
+# exports). Findings land on the Axivion dashboard via the external import.
+#
+# Check families: the analyzer + bug/performance/portability classes plus the
+# modernize/readability/cppcoreguidelines style families (target: modern
+# C++17). Auto-fixable findings can be applied with
+# tools/static_analysis.sh --fix.
+#
+# Disabled, with reason:
+#   bugprone-easily-swappable-parameters   API-shape noise, no fix suggested
+#   *narrowing-conversions                 UI-coordinate double/int mixing — churn
+#   cert-err58-cpp                         static Qt objects are idiomatic
+#   performance-enum-size                  micro-optimisation, hurts clarity
+#   clang-analyzer-optin.performance.Padding  layout noise
+#   modernize-use-trailing-return-type     pure style churn, no gain
+#   *magic-numbers                         physics constants / UI layout values
+#   readability-identifier-length          established idiom (v, dt, s, g…)
+#   cppcoreguidelines-owning-memory        Qt/LVGL parent-child ownership model
+#   readability-redundant-access-specifiers  "private:" after "private slots:"
+#                                          is NOT redundant — it ends the moc
+#                                          slots section
+#   cppcoreguidelines-pro-type-vararg      LVGL's printf-style C API
+#                                          (lv_label_set_text_fmt) is the
+#                                          supported idiom there
+#   readability-avoid-nested-conditional-operator  established three-way
+#                                          mapping idiom for state→color/text
+#   readability-function-cognitive-complexity  complexity is already tracked
+#                                          by the Axivion McCabe metric on the
+#                                          dashboard — no second gate here
+#   readability-braces-around-statements   single-statement guard clauses are
+#                                          the project style (58 hits, churn)
+#   modernize-use-nodiscard                the ~45 state getters exist for
+#                                          moc/QML property reads — annotating
+#                                          them changes nothing for any caller
+#   *avoid-c-arrays                        static lookup tables in the LVGL
+#                                          frontend follow its C API idiom
+#   cppcoreguidelines-pro-bounds-*         LVGL C interop: pixel buffers,
+#                                          C strings/arrays indexed by enums —
+#                                          bounds are the API contract, gsl::at
+#                                          is not available in that layer
+Checks: >
+  clang-analyzer-*,
+  bugprone-*,
+  cert-*,
+  concurrency-*,
+  performance-*,
+  portability-*,
+  modernize-*,
+  cppcoreguidelines-*,
+  readability-*,
+  misc-unused-using-decls,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -cppcoreguidelines-narrowing-conversions,
+  -cert-err58-cpp,
+  -performance-enum-size,
+  -clang-analyzer-optin.performance.Padding,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-identifier-length,
+  -cppcoreguidelines-owning-memory,
+  -readability-redundant-access-specifiers,
+  -cppcoreguidelines-pro-type-vararg,
+  -readability-avoid-nested-conditional-operator,
+  -readability-function-cognitive-complexity,
+  -readability-braces-around-statements,
+  -modernize-use-nodiscard,
+  -cppcoreguidelines-avoid-c-arrays,
+  -modernize-avoid-c-arrays,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay
+WarningsAsErrors: ''
+HeaderFilterRegex: '(core|ui-qt|ui-lvgl|tests)/.*'
+FormatStyle: none
