@@ -16,7 +16,7 @@
                 "check_installation_integrity": false
             },
             "directory": "../",
-            "ir": "build_axivion/RailDeckPro",
+            "ir": "build_axivion/ui-qt/raildeck-qt",
             "name": "RailDeckPro"
         },
         "Shadow": {

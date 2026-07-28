@@ -26,7 +26,7 @@ export BAUHAUS_CONFIG="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 # The Axivion cmake configure doesn't pass -DCMAKE_PREFIX_PATH, so find_package
 # would fall back to the system Qt6. Point it at the same online-installer Qt
 # the normal build uses; prepend so any existing value still wins.
-export CMAKE_PREFIX_PATH="$HOME/Qt/6.10.2/gcc_64${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
+export CMAKE_PREFIX_PATH="$HOME/Qt/6.11.1/gcc_64${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 
 # Analyze the Qt frontend + core only: the LVGL frontend compiles ~800 fetched
 # third-party C files whose MISRA findings would drown the project's own.

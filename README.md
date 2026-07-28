@@ -66,7 +66,7 @@ core/                      traincore — pure C++17, no UI dependency
    ├── train_types.h       TrainState snapshot, Command enum, route types
    └── train_simulation.h  tick(dt) / setLever() / command() / state()
 
-ui-qt/                     Qt Quick frontend (QML, Qt 6.5+, tested 6.10/6.11)
+ui-qt/                     Qt Quick frontend (QML, Qt 6.5+, tested 6.11)
 ui-lvgl/                   LVGL v9.3 frontend (SDL2 desktop simulator)
 ui-slint/                  Slint 1.17 frontend (prebuilt C++ package, no Rust needed)
 tests/                     core smoke tests (ctest)
@@ -99,7 +99,7 @@ fetched automatically too, no Rust toolchain required).
 ```bash
 # all three frontends
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_PREFIX_PATH=~/Qt/6.10.2/gcc_64 \
+      -DCMAKE_PREFIX_PATH=~/Qt/6.11.1/gcc_64 \
       -DRAILDECK_UI=all           # or: qt | lvgl | slint | both (= qt+lvgl)
 cmake --build build
 
@@ -117,7 +117,7 @@ cmake --build build --config Release
 ```
 
 Note for WSL2: the Windows-side Qt kits (`/mnt/c/Qt/...`, MSVC/MinGW) cannot be
-used from inside WSL — use a Linux Qt kit there (e.g. `~/Qt/6.10.2/gcc_64`).
+used from inside WSL — use a Linux Qt kit there (e.g. `~/Qt/6.11.1/gcc_64`).
 
 ### Verification screenshots
 

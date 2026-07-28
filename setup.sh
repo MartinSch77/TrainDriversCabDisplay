@@ -28,7 +28,7 @@
 set -uo pipefail
 
 MODE="${1:-install}"
-QT_VERSION="${QT_VERSION:-6.10.2}"
+QT_VERSION="${QT_VERSION:-6.11.1}"
 QT_DIR="$HOME/Qt"
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -110,9 +110,11 @@ install_qt() {
         echo "Qt $QT_VERSION already at $QT_DIR/$QT_VERSION/gcc_64"
         return 0
     fi
-    echo "== aqt install Qt $QT_VERSION (gcc_64 + qtquick3d) =="
+    echo "== aqt install Qt $QT_VERSION (gcc_64 + qtquick3d + qtshadertools) =="
+    # qtshadertools is a hard runtime dependency of QtQuick3D — without it the
+    # 3D line-ahead view silently falls back to the 2D placeholder.
     aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 \
-        --outputdir "$QT_DIR" --modules qtquick3d
+        --outputdir "$QT_DIR" --modules qtquick3d qtshadertools
 }
 
 case "$MODE" in

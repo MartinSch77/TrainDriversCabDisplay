@@ -51,7 +51,7 @@ Skills: `/verify` (all checks), `/axivion-dashboard` (run + REST verification),
 ## Gotchas that cost hours
 
 - WSL2: Qt 6.11.x under `/mnt/c/Qt` is the WINDOWS kit (MSVC/MinGW) — build
-  with the Linux kit `~/Qt/6.10.2/gcc_64` (`QT_PREFIX`).
+  with the Linux kit `~/Qt/6.11.1/gcc_64` (`QT_PREFIX`).
 - LVGL desktop builds need `LV_USE_STDLIB_MALLOC LV_STDLIB_CLIB` in
   `ui-lvgl/lv_conf.h`: the default 64 KB builtin TLSF pool makes
   `lv_obj_create` spin forever once the full cab UI exhausts it.

@@ -42,7 +42,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  QT_VERSION: "6.10.2"
+  QT_VERSION: "6.11.1"
   # scan.coverity.com project name, URL-encoded ("/" -> %2F)
   COVERITY_PROJECT: MartinSch77%2FTrainDriversCabDisplay
 
