@@ -50,6 +50,7 @@ APT_PKGS=(
     libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0
     libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
     fonts-dejavu-core
+    libinput10 libgbm1 # link-time deps of the prebuilt libslint_cpp.so
 )
 PIPX_PKGS=(cmake strictdoc aqtinstall codespell)
 

@@ -171,11 +171,13 @@ analyzers, three sanitizers and structural coverage — one command drives it:
 | Coverage | gcov line/branch + clang-18 MC/DC; Squish Coco when licensed (`tools/coverage.sh`) | `coverage/` |
 | Docs | Doxygen + graphviz (`tools/make_docs.sh`) | `docs/html/` |
 | Supply chain | syft SBOM, grype, trivy (`tools/supply_chain.sh`, also in CI) | `analysis-results/supply-chain/` |
+| Coverity Scan (CI only) | cov-build capture of all three frontends, uploaded on push to main + weekly (`.github/workflows/coverity.yml`; needs the repo secrets described there) | [scan.coverity.com](https://scan.coverity.com) dashboard |
 | Axivion (optional) | MISRA C++ 2023 + CWE + Qt rules, architecture views; imports all logs above onto one dashboard (`axivion/`) | local dashboard |
 
 CI (GitHub Actions) runs build+tests+traceability+screenshot smoke on Linux,
 Qt-frontend builds on Windows/macOS, the ASan leg, a non-gating
-static-analysis report, CodeQL and the supply-chain scans on every PR.
+static-analysis report, CodeQL and the supply-chain scans on every PR,
+plus a Coverity Scan upload on pushes to main.
 Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

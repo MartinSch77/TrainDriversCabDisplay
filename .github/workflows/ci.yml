@@ -38,10 +38,13 @@ jobs:
           modules: qtquick3d qtshadertools
           cache: true
 
-      - name: Install SDL2, xvfb, fonts, CMake and Ninja
+      # libinput10/libgbm1: link-time deps of the prebuilt libslint_cpp.so
+      # (its LinuxKMS backend) — not preinstalled on the headless runners.
+      - name: Install SDL2, xvfb, fonts, Slint runtime libs, CMake and Ninja
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libsdl2-dev xvfb fonts-dejavu-core
+          sudo apt-get install -y -qq libsdl2-dev xvfb fonts-dejavu-core \
+            libinput10 libgbm1 libxkbcommon0
           python3 -m pip install --upgrade cmake ninja
 
       - name: Configure (all three frontends)
@@ -115,10 +118,11 @@ jobs:
           modules: qtquick3d qtshadertools
           cache: true
 
-      - name: Install analyzers, SDL2 and CMake
+      - name: Install analyzers, SDL2, Slint runtime libs and CMake
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq cppcheck clang-tidy clazy libsdl2-dev
+          sudo apt-get install -y -qq cppcheck clang-tidy clazy libsdl2-dev \
+            libinput10 libgbm1 libxkbcommon0
           python3 -m pip install --upgrade cmake ninja
 
       # cppcheck loads the whole compile DB, which references the moc autogen
