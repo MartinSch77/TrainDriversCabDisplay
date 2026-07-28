@@ -29,7 +29,7 @@ the implementing classes/files and the requirements it satisfies
 
 | ID | Element | Implementation | satisfies |
 |----|---------|----------------|-----------|
-| DES-TOK-GEN | Single-source theme: `theme.json` generated into the QML singleton and the C header | `design/theme.json`, `design/generate_tokens.py` → `ui-qt/qml/Theme.qml`, `shared/theme_tokens.h` | REQ-N-003 |
+| DES-TOK-GEN | Single-source theme: `theme.json` generated into the QML singleton, the C header and the Slint global | `design/theme.json`, `design/generate_tokens.py` → `ui-qt/qml/Theme.qml`, `shared/theme_tokens.h`, `ui-slint/ui/Theme.slint` | REQ-N-003 |
 
 ## Qt Quick frontend (`ui-qt/`, target `raildeck-qt`)
 
@@ -42,3 +42,9 @@ the implementing classes/files and the requirements it satisfies
 | ID | Element | Implementation | satisfies |
 |----|---------|----------------|-----------|
 | DES-LVGL-FRONT | Thin LVGL frontend mirroring the Qt layout 1:1 from the shared tokens: arcs/scales/bars, perspective line-ahead view, planning strip, button bar, SDL simulator, BMP `--screenshot` support | `src/ui.h/.cpp`, `src/main.cpp`, `lv_conf.h` | REQ-N-001, REQ-N-002, REQ-N-005, REQ-F-001, REQ-F-008, REQ-F-009, REQ-F-013, REQ-F-014, REQ-F-015, REQ-F-016, REQ-F-017 |
+
+## Slint frontend (`ui-slint/`, target `raildeck-slint`)
+
+| ID | Element | Implementation | satisfies |
+|----|---------|----------------|-----------|
+| DES-SLINT-FRONT | Thin Slint frontend mirroring the Qt layout 1:1 from the shared tokens: declarative `.slint` components (speedometer with supervision ring, gauges, effort bar, planning strip, perspective line-ahead view, button bar, keyboard controls), C++ bridge pumping one snapshot per tick into the Backend global, BMP `--screenshot` support | `src/main.cpp`, `ui/*.slint` | REQ-N-001, REQ-N-002, REQ-N-005, REQ-F-001, REQ-F-008, REQ-F-009, REQ-F-013, REQ-F-014, REQ-F-015, REQ-F-016, REQ-F-017 |

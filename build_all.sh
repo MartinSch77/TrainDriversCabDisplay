@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Build every artefact this project produces, in dependency order:
 #
-#   build      build/                    both frontends + test binaries (Debug,
+#   build      build/                    all three frontends + test binaries (Debug,
 #                                        with compile_commands.json for the analyzers)
-#   app        build/ui-*/raildeck-*     the two app executables ONLY (convenience
+#   app        build/ui-*/raildeck-*     the three app executables ONLY (convenience
 #                                        stage, not part of the default run)
 #   release    build-release/            optimized RelWithDebInfo build for daily
 #                                        use / profiling (extra stage)
@@ -60,7 +60,7 @@ stage_build() {
     cmake -S "$ROOT" -B "$ROOT/build" \
         -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
         -DCMAKE_BUILD_TYPE=Debug \
-        -DRAILDECK_UI=both \
+        -DRAILDECK_UI=all \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON &&
         cmake --build "$ROOT/build" -j"$JOBS"
 }
@@ -70,9 +70,9 @@ stage_app() {
     cmake -S "$ROOT" -B "$ROOT/build" \
         -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
         -DCMAKE_BUILD_TYPE=Debug \
-        -DRAILDECK_UI=both \
+        -DRAILDECK_UI=all \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON &&
-        cmake --build "$ROOT/build" --target raildeck-qt raildeck-lvgl -j"$JOBS"
+        cmake --build "$ROOT/build" --target raildeck-qt raildeck-lvgl raildeck-slint -j"$JOBS"
 }
 
 stage_release() {
@@ -82,10 +82,10 @@ stage_release() {
     cmake -S "$ROOT" -B "$ROOT/build-release" \
         -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        -DRAILDECK_UI=both \
+        -DRAILDECK_UI=all \
         -DCMAKE_CXX_FLAGS="-fno-omit-frame-pointer" &&
         cmake --build "$ROOT/build-release" -j"$JOBS" &&
-        echo "release binaries: build-release/ui-qt/raildeck-qt, build-release/ui-lvgl/raildeck-lvgl"
+        echo "release binaries: build-release/ui-qt/raildeck-qt, build-release/ui-lvgl/raildeck-lvgl, build-release/ui-slint/raildeck-slint"
 }
 
 stage_test() { "$ROOT/tools/run_tests.sh" build; }

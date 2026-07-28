@@ -1,0 +1,40 @@
+// Compact numeric readout tile: title on top, monospaced value + unit below.
+import { Theme } from "Theme.slint";
+
+export component InfoTile inherits Rectangle {
+    in property <string> title;
+    in property <string> value;
+    in property <string> unit;
+    in property <color> valueColor: Theme.textPrimary;
+
+    border-radius: Theme.radiusSmall;
+    background: Theme.panelInset;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: 6px;
+        text: root.title;
+        color: Theme.textDim;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+
+    valueText := Text {
+        x: (parent.width - (self.width + 4px + unitText.width)) / 2;
+        y: parent.height - 6px - self.height;
+        text: root.value;
+        color: root.valueColor;
+        font-size: Theme.fontSizeMedium;
+        font-family: "DejaVu Sans Mono";
+        font-weight: 700;
+    }
+    unitText := Text {
+        x: valueText.x + valueText.width + 4px;
+        y: parent.height - 8px - self.height;
+        text: root.unit;
+        color: Theme.textDim;
+        font-size: Theme.fontSizeSmall;
+    }
+}

@@ -38,16 +38,16 @@ jobs:
           modules: qtquick3d qtshadertools
           cache: true
 
-      - name: Install SDL2, xvfb, CMake and Ninja
+      - name: Install SDL2, xvfb, fonts, CMake and Ninja
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libsdl2-dev xvfb
+          sudo apt-get install -y -qq libsdl2-dev xvfb fonts-dejavu-core
           python3 -m pip install --upgrade cmake ninja
 
-      - name: Configure (both frontends)
+      - name: Configure (all three frontends)
         run: >
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-          -DRAILDECK_UI=both
+          -DRAILDECK_UI=all
           -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
@@ -60,13 +60,15 @@ jobs:
       - name: Traceability matrix (fails on hard gaps)
         run: python3 tools/trace_report.py
 
-      - name: UI screenshot smoke (both frontends render headlessly)
+      - name: UI screenshot smoke (all three frontends render headlessly)
         run: |
           mkdir -p ci-screenshots
           QT_QPA_PLATFORM=offscreen ./build/ui-qt/raildeck-qt \
             --screenshot ci-screenshots/qt-cab.png
           xvfb-run -a ./build/ui-lvgl/raildeck-lvgl \
             --screenshot ci-screenshots/lvgl-cab.bmp
+          SLINT_BACKEND=winit-software xvfb-run -a ./build/ui-slint/raildeck-slint \
+            --screenshot ci-screenshots/slint-cab.bmp
           ls -la ci-screenshots/
 
       - name: Upload test results, traceability and screenshots
@@ -124,7 +126,7 @@ jobs:
       - name: Configure + build (compile database for the analyzers)
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DRAILDECK_UI=both \
+            -DRAILDECK_UI=all \
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build build -j"$(nproc)"
@@ -132,7 +134,7 @@ jobs:
       - name: codespell (typos in comments and docs)
         run: |
           pipx install codespell
-          codespell core ui-qt ui-lvgl/src ui-lvgl/lv_conf.h tests design docs/*.md tools *.md *.sh requirements .github
+          codespell core ui-qt ui-lvgl/src ui-lvgl/lv_conf.h ui-slint tests design docs/*.md tools *.md *.sh requirements .github
 
       # Report, don't gate: dashboard-triaged findings must not brick CI while
       # they are being worked; the local pipeline (build_all.sh) gates hard.

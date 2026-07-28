@@ -1,0 +1,124 @@
+// Perspective "LINE AHEAD" view, matching the Qt Quick 3D scene: rails,
+// sleepers and catenary masts moving with the train, horizon shifting with
+// the gradient, the supervised braking target as a yellow lineside board.
+// Same projection math as the LVGL frontend; scene colors mirror the Qt
+// TrackView3D materials.
+import { Theme } from "Theme.slint";
+
+export component LineAhead inherits Rectangle {
+    in property <float> gradientPermille;
+    in property <float> routePositionM;
+    in property <float> distanceToTargetM: -1;
+
+    property <color> groundColor: #10141E;
+    property <color> railColor: #8E9AAF;
+    property <color> sleeperColor: #39415A;
+    property <color> mastColor: #4A5570;
+
+    property <float> cx: self.width / 2px;
+    property <float> bottomY: self.height / 1px - 8;
+    property <float> zNear: 0.55;
+    property <float> horizon: clamp(78 - root.gradientPermille * 1.5, 56, 100);
+    property <float> cp: (root.bottomY - root.horizon) * root.zNear; // y - horizon ~ 1/z
+    property <float> sleeperPhase: mod(root.routePositionM * 100, 60) / 60;
+    property <float> mastPhase: mod(root.routePositionM * 100, 4000) / 4000;
+    property <float> boardZ: root.zNear + root.distanceToTargetM / 110;
+
+    pure function yOf(z: float) -> float { return horizon + cp / z; }
+    pure function hwOf(z: float) -> float { return 66 * zNear / z; }
+    pure function sleeperZ(i: int) -> float { return zNear + (i + 1 - sleeperPhase) * 0.42; }
+    pure function mastZ(m: int) -> float { return 0.7 + (m + 1 - mastPhase) * 3.4; }
+
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+    clip: true;
+
+    Rectangle { // ground plane below the horizon
+        x: 1px;
+        y: 1px * root.horizon;
+        width: parent.width - 2px;
+        height: 1px * (root.bottomY + 8 - root.horizon);
+        background: root.groundColor;
+    }
+
+    for i in 12: Rectangle { // sleepers, 60 cm spacing (same as the Qt scene)
+        x: 1px * (root.cx - root.hwOf(root.sleeperZ(i)) * 1.18);
+        y: 1px * (root.yOf(root.sleeperZ(i)) - max(1, 6 * root.zNear / root.sleeperZ(i)));
+        width: 2px * root.hwOf(root.sleeperZ(i)) * 1.18;
+        height: 1px * max(1, 6 * root.zNear / root.sleeperZ(i));
+        background: root.sleeperColor;
+    }
+
+    Path { // left rail
+        width: 100%;
+        height: 100%;
+        viewbox-width: self.width / 1px;
+        viewbox-height: self.height / 1px;
+        stroke: root.railColor;
+        stroke-width: 3px;
+        fill: transparent;
+        MoveTo { x: root.cx - 66; y: root.bottomY; }
+        LineTo { x: root.cx - 1; y: root.horizon + 2; }
+    }
+    Path { // right rail
+        width: 100%;
+        height: 100%;
+        viewbox-width: self.width / 1px;
+        viewbox-height: self.height / 1px;
+        stroke: root.railColor;
+        stroke-width: 3px;
+        fill: transparent;
+        MoveTo { x: root.cx + 66; y: root.bottomY; }
+        LineTo { x: root.cx + 1; y: root.horizon + 2; }
+    }
+
+    for m in 3: Rectangle { // catenary mast pole, 40 m spacing
+        x: 1px * (root.cx - root.hwOf(root.mastZ(m)) * 3.1);
+        y: 1px * (root.yOf(root.mastZ(m)) - 150 * root.zNear / root.mastZ(m));
+        width: 1px * max(1, 4 * root.zNear / root.mastZ(m));
+        height: 1px * (150 * root.zNear / root.mastZ(m));
+        background: root.mastColor;
+    }
+    for m in 3: Rectangle { // catenary mast arm
+        x: 1px * (root.cx - root.hwOf(root.mastZ(m)) * 3.1
+                  + max(1, 4 * root.zNear / root.mastZ(m)));
+        y: 1px * (root.yOf(root.mastZ(m)) - 150 * root.zNear / root.mastZ(m)
+                  + 150 * root.zNear / root.mastZ(m) / 8);
+        width: 1px * (26 * root.zNear / root.mastZ(m));
+        height: 1px * max(1, 26 * root.zNear / root.mastZ(m) / 6);
+        background: root.mastColor;
+    }
+
+    // braking-target board (compressed distance, as in the Qt scene)
+    Rectangle { // pole
+        visible: root.distanceToTargetM >= 0 && root.distanceToTargetM < 2200;
+        x: 1px * (root.cx + root.hwOf(root.boardZ) * 3.0);
+        y: 1px * (root.yOf(root.boardZ) - 70 * root.zNear / root.boardZ);
+        width: 1px * max(1, 3 * root.zNear / root.boardZ);
+        height: 1px * (70 * root.zNear / root.boardZ);
+        background: root.mastColor;
+    }
+    Rectangle { // disc
+        visible: root.distanceToTargetM >= 0 && root.distanceToTargetM < 2200;
+        x: 1px * (root.cx + root.hwOf(root.boardZ) * 3.0
+                  - max(3, 22 * root.zNear / root.boardZ) / 2
+                  + max(1, 3 * root.zNear / root.boardZ) / 2);
+        y: 1px * (root.yOf(root.boardZ) - 70 * root.zNear / root.boardZ
+                  - max(3, 22 * root.zNear / root.boardZ));
+        width: 1px * max(3, 22 * root.zNear / root.boardZ);
+        height: 1px * max(3, 22 * root.zNear / root.boardZ);
+        border-radius: self.width / 2;
+        background: Theme.yellow;
+    }
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: 7px;
+        text: "LINE AHEAD";
+        color: Theme.textSecondary;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+}

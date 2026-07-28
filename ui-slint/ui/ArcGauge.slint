@@ -1,0 +1,140 @@
+// Small round instrument: 240-degree scale, colored zones, needle, digital value.
+import { Theme } from "Theme.slint";
+
+export struct GaugeZone { from: float, to: float, zoneColor: color }
+
+export component ArcGauge inherits Rectangle {
+    in property <string> title;
+    in property <string> unit;
+    in property <float> value;
+    in property <string> valueText;
+    in property <float> from: 0;
+    in property <float> to: 10;
+    in property <int> majorTicks: 6;
+    in property <[GaugeZone]> zones: [];
+
+    property <angle> startAngle: 150deg;
+    property <angle> sweep: 240deg;
+    property <length> dialSize: min(self.width - 26px, self.height - 40px);
+    property <float> dialPx: dialSize / 1px;
+    property <float> r: dialPx / 2 - 5;
+
+    pure function angleFor(v: float) -> angle {
+        return startAngle + clamp((v - root.from) / (root.to - root.from), 0, 1) * sweep;
+    }
+
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: 7px;
+        text: root.title;
+        color: Theme.textSecondary;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+
+    dial := Rectangle {
+        x: (parent.width - root.dialSize) / 2;
+        y: 24px;
+        width: root.dialSize;
+        height: root.dialSize;
+
+        Path { // track
+            viewbox-width: root.dialPx;
+            viewbox-height: root.dialPx;
+            stroke: Theme.gaugeTrack;
+            stroke-width: 7px;
+            fill: transparent;
+            MoveTo {
+                x: root.dialPx / 2 + root.r * cos(root.angleFor(root.from));
+                y: root.dialPx / 2 + root.r * sin(root.angleFor(root.from));
+            }
+            ArcTo {
+                x: root.dialPx / 2 + root.r * cos(root.angleFor(root.to));
+                y: root.dialPx / 2 + root.r * sin(root.angleFor(root.to));
+                radius-x: root.r;
+                radius-y: root.r;
+                sweep: true;
+                large-arc: true;
+            }
+        }
+
+        for zone in root.zones: Path {
+            viewbox-width: root.dialPx;
+            viewbox-height: root.dialPx;
+            stroke: zone.zoneColor;
+            stroke-width: 7px;
+            fill: transparent;
+            MoveTo {
+                x: root.dialPx / 2 + root.r * cos(root.angleFor(zone.from));
+                y: root.dialPx / 2 + root.r * sin(root.angleFor(zone.from));
+            }
+            ArcTo {
+                x: root.dialPx / 2 + root.r * cos(root.angleFor(zone.to));
+                y: root.dialPx / 2 + root.r * sin(root.angleFor(zone.to));
+                radius-x: root.r;
+                radius-y: root.r;
+                sweep: true;
+                large-arc: root.angleFor(zone.to) - root.angleFor(zone.from) > 180deg;
+            }
+        }
+
+        for i in root.majorTicks + 1: Rectangle { // major ticks
+            width: 100%;
+            height: 100%;
+            transform-rotation: root.angleFor(root.from + i * (root.to - root.from) / root.majorTicks) - 270deg;
+            Rectangle {
+                x: parent.width / 2 - 1px;
+                y: 1px;
+                width: 2px;
+                height: 7px;
+                background: Theme.gaugeTick;
+            }
+        }
+
+        Rectangle { // needle
+            width: 100%;
+            height: 100%;
+            transform-rotation: root.angleFor(root.value) - 270deg;
+            animate transform-rotation { duration: 120ms; }
+            Rectangle {
+                x: parent.width / 2 - 1.5px;
+                y: 9px;
+                width: 3px;
+                height: (root.dialSize / 2 - 5px) * 0.52;
+                border-radius: 1.5px;
+                background: Theme.needle;
+            }
+        }
+
+        Rectangle { // hub
+            x: parent.width / 2 - 4px;
+            y: parent.height / 2 - 4px;
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: Theme.lineBright;
+        }
+    }
+
+    Text { // digital value
+        x: (parent.width - self.width) / 2;
+        y: parent.height - 16px - self.height;
+        text: root.valueText;
+        color: Theme.textPrimary;
+        font-size: Theme.fontSizeLarge;
+        font-family: "DejaVu Sans Mono";
+        font-weight: 700;
+    }
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - 3px - self.height;
+        text: root.unit;
+        color: Theme.textDim;
+        font-size: Theme.fontSizeSmall;
+    }
+}

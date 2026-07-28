@@ -155,7 +155,7 @@ STATEMENT: All HMI behaviour shall live in a UI-independent C++ core library; a 
 UID: REQ-N-002
 VERIFICATION: I
 TITLE: Interchangeable frontends with equal look and feel
-STATEMENT: The Qt Quick and the LVGL frontend shall provide the same instrument layout, functions and colors, driven by the same core API.
+STATEMENT: The Qt Quick, the LVGL and the Slint frontend shall provide the same instrument layout, functions and colors, driven by the same core API.
 
 [REQUIREMENT]
 UID: REQ-N-003
@@ -173,7 +173,7 @@ STATEMENT: Given the same command and tick sequence, the simulation core shall r
 UID: REQ-N-005
 VERIFICATION: I
 TITLE: Headless verification support
-STATEMENT: Both frontends shall support automated headless screenshot capture (--screenshot, --screenshot-delay) for visual verification.
+STATEMENT: All frontends shall support automated headless screenshot capture (--screenshot, --screenshot-delay) for visual verification.
 
 [REQUIREMENT]
 UID: REQ-N-006

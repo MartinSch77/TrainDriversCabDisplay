@@ -1,0 +1,233 @@
+// Main circular speed gauge with braking-curve supervision ring:
+// grey = permitted range, yellow = braking-curve indication towards the
+// target, orange = overspeed warning band, red = intervention. Needle,
+// large digital readout, target/distance info and cruise set-speed marker.
+import { Theme } from "Theme.slint";
+
+component RingArc inherits Path {
+    in property <float> fromV;
+    in property <float> toV;
+    in property <float> maxKmh;
+    in property <float> ringR;
+    in property <angle> startAngle;
+    in property <angle> sweepAngle;
+
+    property <float> c: self.viewbox-width / 2;
+    pure function angleFor(v: float) -> angle {
+        return startAngle + clamp(v / maxKmh, 0, 1) * sweepAngle;
+    }
+
+    visible: toV > fromV + 0.1;
+    width: 100%;
+    height: 100%;
+    viewbox-width: self.width / 1px;
+    viewbox-height: self.height / 1px;
+    stroke-width: 10px;
+    fill: transparent;
+
+    MoveTo {
+        x: parent.c + parent.ringR * cos(parent.angleFor(parent.fromV));
+        y: parent.c + parent.ringR * sin(parent.angleFor(parent.fromV));
+    }
+    ArcTo {
+        x: parent.c + parent.ringR * cos(parent.angleFor(parent.toV));
+        y: parent.c + parent.ringR * sin(parent.angleFor(parent.toV));
+        radius-x: parent.ringR;
+        radius-y: parent.ringR;
+        sweep: true;
+        large-arc: parent.angleFor(parent.toV) - parent.angleFor(parent.fromV) > 180deg;
+    }
+}
+
+export component Speedometer inherits Rectangle {
+    in property <float> speed;
+    in property <float> permitted: 160;
+    in property <float> target: 160;
+    in property <float> distanceToTarget: -1;
+    in property <string> distanceText;
+    in property <bool> warning;
+    in property <bool> intervention;
+    in property <bool> afbEnabled;
+    in property <float> afbSet;
+
+    property <float> maxKmh: Theme.speedoMaxKmh;
+    property <angle> startAngle: Theme.speedoStartDeg * 1deg;
+    property <angle> sweep: Theme.speedoSweepDeg * 1deg;
+    property <bool> hasTarget: root.distanceToTarget >= 0
+                               && root.target < root.permitted - 0.5;
+    property <float> ringR: self.width / 2px - 16;
+    property <color> speedColor: root.intervention ? Theme.danger
+                                : root.warning ? Theme.warn : Theme.textPrimary;
+
+    pure function angleFor(v: float) -> angle {
+        return startAngle + clamp(v / maxKmh, 0, 1) * sweep;
+    }
+
+    border-radius: self.width / 2;
+    background: Theme.panel;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    // --- supervision ring ---------------------------------------------------
+    RingArc { // track
+        fromV: 0; toV: root.maxKmh; stroke: Theme.gaugeTrack;
+        maxKmh: root.maxKmh; ringR: root.ringR;
+        startAngle: root.startAngle; sweepAngle: root.sweep;
+    }
+    RingArc { // permitted range
+        fromV: 0; toV: root.permitted; stroke: Theme.arcPermitted;
+        maxKmh: root.maxKmh; ringR: root.ringR;
+        startAngle: root.startAngle; sweepAngle: root.sweep;
+    }
+    RingArc { // braking-curve indication segment
+        visible: root.hasTarget;
+        fromV: root.target; toV: root.permitted; stroke: Theme.arcTarget;
+        maxKmh: root.maxKmh; ringR: root.ringR;
+        startAngle: root.startAngle; sweepAngle: root.sweep;
+    }
+    RingArc { // overspeed warning band
+        visible: root.warning && !root.intervention;
+        fromV: root.permitted; toV: min(root.permitted + 8, root.maxKmh);
+        stroke: Theme.arcWarning;
+        maxKmh: root.maxKmh; ringR: root.ringR;
+        startAngle: root.startAngle; sweepAngle: root.sweep;
+    }
+    RingArc { // intervention band up to actual speed
+        visible: root.intervention;
+        fromV: root.permitted; toV: max(root.speed, root.permitted + 4);
+        stroke: Theme.arcDanger;
+        maxKmh: root.maxKmh; ringR: root.ringR;
+        startAngle: root.startAngle; sweepAngle: root.sweep;
+    }
+
+    // --- scale --------------------------------------------------------------
+    for i in floor(root.maxKmh / 10) + 1: Rectangle { // minor ticks every 10
+        width: 100%;
+        height: 100%;
+        transform-rotation: root.angleFor(i * 10) - 270deg;
+        Rectangle {
+            x: parent.width / 2 - 1px;
+            y: 26px;
+            width: mod(i, 2) == 0 ? 3px : 2px;
+            height: mod(i, 2) == 0 ? 16px : 9px;
+            background: mod(i, 2) == 0 ? Theme.gaugeTick : Theme.gaugeTrack;
+        }
+    }
+    for i in floor(root.maxKmh / 20) + 1: Text { // labels every 20
+        x: 1px * (root.width / 2px + (root.ringR - 46) * cos(root.angleFor(i * 20)))
+           - self.width / 2;
+        y: 1px * (root.height / 2px + (root.ringR - 46) * sin(root.angleFor(i * 20)))
+           - self.height / 2;
+        text: i * 20;
+        color: Theme.textSecondary;
+        font-size: Theme.fontSizeBase;
+        font-family: "DejaVu Sans Mono";
+    }
+
+    // --- cruise set-speed marker ----------------------------------------------
+    Rectangle {
+        visible: root.afbEnabled;
+        x: 1px * (root.width / 2px + (root.ringR - 22) * cos(root.angleFor(root.afbSet))) - 5px;
+        y: 1px * (root.height / 2px + (root.ringR - 22) * sin(root.angleFor(root.afbSet))) - 5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 5px;
+        background: Theme.accent;
+        border-color: Theme.bg;
+        border-width: 1px;
+    }
+
+    // --- needle ---------------------------------------------------------------
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        transform-rotation: root.angleFor(root.speed) - 270deg;
+        animate transform-rotation { duration: 120ms; }
+        Rectangle {
+            x: parent.width / 2 - 3px;
+            y: 34px;
+            width: 6px;
+            height: 1px * root.ringR - 90px;
+            border-radius: 3px;
+            background: root.speedColor;
+        }
+    }
+
+    // --- hub with digital readout -----------------------------------------------
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 190px;
+        height: 190px;
+        border-radius: 95px;
+        background: Theme.panelInset;
+        border-color: Theme.line;
+        border-width: Theme.borderWidth;
+
+        speedText := Text {
+            x: (parent.width - self.width) / 2;
+            y: parent.height / 2 - 6px - self.height / 2 - 10px;
+            text: round(root.speed);
+            color: root.speedColor;
+            font-size: Theme.fontSizeSpeed;
+            font-family: "DejaVu Sans Mono";
+            font-weight: 700;
+        }
+        Text {
+            x: (parent.width - self.width) / 2;
+            y: speedText.y + speedText.height - 6px;
+            text: "km/h";
+            color: Theme.textDim;
+            font-size: Theme.fontSizeBase;
+        }
+    }
+
+    // --- target / distance readout ------------------------------------------------
+    targetBox := Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - 46px - self.height;
+        width: 176px;
+        height: 40px;
+        border-radius: Theme.radiusSmall;
+        background: Theme.panelInset;
+        border-color: root.hasTarget ? Theme.arcTarget : Theme.line;
+        border-width: Theme.borderWidth;
+        visible: root.hasTarget;
+
+        targetText := Text {
+            x: (parent.width - (self.width + 10px + 1px + 10px + distText.width)) / 2;
+            y: (parent.height - self.height) / 2;
+            text: round(root.target);
+            color: Theme.arcTarget;
+            font-size: Theme.fontSizeXL;
+            font-family: "DejaVu Sans Mono";
+            font-weight: 700;
+        }
+        Rectangle {
+            x: targetText.x + targetText.width + 10px;
+            y: (parent.height - self.height) / 2;
+            width: 1px;
+            height: 24px;
+            background: Theme.line;
+        }
+        distText := Text {
+            x: targetText.x + targetText.width + 21px;
+            y: (parent.height - self.height) / 2;
+            text: root.distanceText;
+            color: Theme.textSecondary;
+            font-size: Theme.fontSizeMedium;
+            font-family: "DejaVu Sans Mono";
+        }
+    }
+
+    // permitted speed readout, top of gauge gap
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - 18px - self.height;
+        text: "PERM " + round(root.permitted);
+        color: Theme.arcPermitted;
+        font-size: Theme.fontSizeSmall;
+        font-family: "DejaVu Sans Mono";
+        letter-spacing: 1px;
+    }
+}

@@ -44,8 +44,8 @@ I = inspection.
 | ID | Requirement | Verify |
 |----|-------------|--------|
 | REQ-N-001 | All HMI behaviour shall live in a UI-independent C++ core library; a frontend shall interact with it exclusively through tick(), setLever() and command() and shall render the published state snapshot. | A, I |
-| REQ-N-002 | The Qt Quick and the LVGL frontend shall provide the same instrument layout, functions and colors, driven by the same core API. | I |
+| REQ-N-002 | The Qt Quick, the LVGL and the Slint frontend shall provide the same instrument layout, functions and colors, driven by the same core API. | I |
 | REQ-N-003 | All colors, font sizes and key metrics shall be generated from the single source design/theme.json for every frontend; generated token files shall not be edited by hand. | A, I |
 | REQ-N-004 | Given the same command and tick sequence, the simulation core shall reproduce the identical state evolution (no wall-clock or randomness dependencies). | T |
-| REQ-N-005 | Both frontends shall support automated headless screenshot capture (--screenshot, --screenshot-delay) for visual verification. | I |
+| REQ-N-005 | All frontends shall support automated headless screenshot capture (--screenshot, --screenshot-delay) for visual verification. | I |
 | REQ-N-006 | >>> | T |

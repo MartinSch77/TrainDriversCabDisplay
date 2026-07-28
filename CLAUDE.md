@@ -1,9 +1,10 @@
 # RailDeck Pro — project instructions
 
 Train driver's cab display (train HMI): one UI-agnostic C++17 simulation core
-(`traincore`) with TWO interchangeable frontends — Qt Quick (QML, Qt 6.5+)
-and LVGL v9.3 (SDL simulator) — sharing one design-token source. Quality
-toolchain: requirements-as-code, full traceability, four static analyzers +
+(`traincore`) with THREE interchangeable frontends — Qt Quick (QML, Qt 6.5+),
+LVGL v9.3 (SDL simulator) and Slint 1.17 (prebuilt C++ package, fetched by
+CMake) — sharing one design-token source. Quality toolchain:
+requirements-as-code, full traceability, four static analyzers +
 three sanitizers on one Axivion dashboard.
 
 ## Entry points
@@ -26,10 +27,11 @@ Skills: `/verify` (all checks), `/axivion-dashboard` (run + REST verification),
 
 - The core stays UI-free: frontends interact ONLY via `tick()`, `setLever()`,
   `command()` and render the `TrainState` snapshot (REQ-N-001). New HMI
-  behaviour goes into the core first, then into BOTH frontends.
+  behaviour goes into the core first, then into ALL THREE frontends.
 - Colors/fonts/metrics come ONLY from `design/theme.json` →
-  `python3 design/generate_tokens.py` regenerates `ui-qt/qml/Theme.qml` and
-  `shared/theme_tokens.h`. Never edit the generated files (REQ-N-003).
+  `python3 design/generate_tokens.py` regenerates `ui-qt/qml/Theme.qml`,
+  `shared/theme_tokens.h` and `ui-slint/ui/Theme.slint`. Never edit the
+  generated files (REQ-N-003).
 - Requirements live ONLY in `requirements/requirements.sdoc` (StrictDoc);
   `docs/requirements.md` is generated (`tools/make_requirements.sh`).
 - Every test carries `//! @tstid TS-… @design DES-…` plus
@@ -54,8 +56,14 @@ Skills: `/verify` (all checks), `/axivion-dashboard` (run + REST verification),
   `ui-lvgl/lv_conf.h`: the default 64 KB builtin TLSF pool makes
   `lv_obj_create` spin forever once the full cab UI exhausts it.
 - LVGL v9.3 CMake wants `LV_BUILD_CONF_PATH` (not `LV_CONF_PATH`).
-- Verification screenshots: both binaries take
+- Verification screenshots: all three binaries take
   `--screenshot <file> [--screenshot-delay ms]`. Qt offscreen works, but
-  Qt Quick 3D needs a real display (`DISPLAY=:0` under WSLg); LVGL writes BMP.
+  Qt Quick 3D needs a real display (`DISPLAY=:0` under WSLg); LVGL and Slint
+  write BMP. Slint under xvfb/CI: set `SLINT_BACKEND=winit-software`.
 - Montserrat (LVGL built-in font) covers ASCII only — no ‰, ·, →, ▲; use
   ASCII ("mm/m", "-", LV_SYMBOL_*) in the LVGL frontend.
+- Slint 1.17: `rotation-angle` is deprecated/rejected on most elements — use
+  `transform-rotation` (rotates the element AND its children around the
+  element centre, so QML's "rotate a full-size Item with an offset child"
+  pattern ports 1:1). Fixed decimals ("%.1f") are not expressible in .slint;
+  such strings come pre-formatted from `ui-slint/src/main.cpp`.

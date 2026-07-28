@@ -1,0 +1,123 @@
+// Route planning area: the next 4 km ahead as a vertical strip, showing
+// speed-limit changes, station stops and the supervised braking target.
+import { Theme } from "Theme.slint";
+import { PlanEvent } from "Backend.slint";
+
+export component PlanningStrip inherits Rectangle {
+    in property <[PlanEvent]> events;
+    in property <float> routePositionM;
+    in property <float> routeLengthM: 1;
+    in property <float> distanceToTargetM: -1;
+
+    property <float> windowM: 4000;
+
+    pure function yFor(dAheadM: float) -> length {
+        return strip.height * (1 - dAheadM / windowM);
+    }
+    pure function dAhead(absM: float) -> float {
+        return mod(absM - root.routePositionM + root.routeLengthM, root.routeLengthM);
+    }
+
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: 7px;
+        text: "ROUTE · 4 KM AHEAD";
+        color: Theme.textSecondary;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+
+    strip := Rectangle {
+        x: 44px;
+        y: 30px;
+        width: parent.width - 44px - 12px;
+        height: parent.height - 30px - 14px;
+        border-radius: Theme.radiusSmall;
+        background: Theme.panelInset;
+        border-color: Theme.line;
+        border-width: Theme.borderWidth;
+        clip: true;
+
+        for ev in root.events: Rectangle { // event marker line
+            visible: root.dAhead(ev.absM) <= root.windowM;
+            x: 4px;
+            y: root.yFor(root.dAhead(ev.absM)) - 1px;
+            width: parent.width - 8px;
+            height: 2px;
+            background: ev.isStation ? Theme.accent : Theme.yellow;
+            opacity: ev.isStation ? 1.0 : 0.75;
+        }
+        for ev in root.events: Rectangle { // limit chip
+            visible: !ev.isStation && root.dAhead(ev.absM) <= root.windowM;
+            x: parent.width - 40px;
+            y: root.yFor(root.dAhead(ev.absM)) - 22px;
+            width: 36px;
+            height: 20px;
+            border-radius: 10px;
+            background: Theme.panelInset;
+            border-color: Theme.yellow;
+            border-width: 1px;
+            Text {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                text: ev.label;
+                color: Theme.yellow;
+                font-size: Theme.fontSizeSmall;
+                font-family: "DejaVu Sans Mono";
+                font-weight: 700;
+            }
+        }
+        for ev in root.events: Text { // station label
+            visible: ev.isStation && root.dAhead(ev.absM) <= root.windowM;
+            x: 6px;
+            y: root.yFor(root.dAhead(ev.absM)) - 18px;
+            width: parent.width - 12px;
+            overflow: elide;
+            text: "■ " + ev.label;
+            color: Theme.accent;
+            font-size: Theme.fontSizeSmall;
+            font-weight: 700;
+        }
+
+        Text { // train position marker
+            x: (parent.width - self.width) / 2;
+            y: parent.height - 16px;
+            text: "▲";
+            color: Theme.textPrimary;
+            font-size: Theme.fontSizeBase;
+        }
+    }
+
+    for i in 5: Rectangle { // distance ruler
+        x: strip.x;
+        y: strip.y + max(0px, root.yFor(i * 1000) - 1px);
+        width: strip.width;
+        height: 1px;
+        background: Theme.line;
+        Text {
+            x: -34px - strip.x + 10px;
+            y: -7px;
+            width: 28px;
+            horizontal-alignment: right;
+            text: i == 0 ? "0" : i + "k";
+            color: Theme.textDim;
+            font-size: Theme.fontSizeSmall;
+            font-family: "DejaVu Sans Mono";
+        }
+    }
+
+    Rectangle { // supervised braking target
+        visible: root.distanceToTargetM >= 0 && root.distanceToTargetM <= root.windowM;
+        x: strip.x - 6px;
+        y: strip.y + root.yFor(root.distanceToTargetM) - 4px;
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: Theme.arcTarget;
+    }
+}

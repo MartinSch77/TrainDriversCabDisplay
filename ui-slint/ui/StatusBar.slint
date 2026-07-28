@@ -1,0 +1,145 @@
+// Top strip: service, driving mode, active alert ticker, next stop, clock
+// and system badges (pantograph / radio / PA).
+import { Theme } from "Theme.slint";
+import { Backend } from "Backend.slint";
+
+component MiniBadge inherits Rectangle {
+    in property <string> label;
+    in property <bool> on;
+    in property <color> onColor: Theme.ok;
+
+    width: 40px;
+    height: 24px;
+    border-radius: Theme.radiusSmall;
+    background: root.on ? root.onColor.darker(2.2) : Theme.panel;
+    border-color: root.on ? root.onColor : Theme.line;
+    border-width: 1px;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        text: root.label;
+        color: root.on ? root.onColor : Theme.textDim;
+        font-size: Theme.fontSizeSmall;
+        font-weight: 700;
+    }
+}
+
+export component StatusBar inherits Rectangle {
+    property <bool> blinkOn: mod(animation-tick(), 700ms) < 350ms;
+    property <[color]> severityBorder: [Theme.line, Theme.warn, Theme.danger];
+    property <[color]> severityText: [Theme.textSecondary, Theme.warn, Theme.danger];
+
+    background: Theme.panelInset;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    serviceBadge := Rectangle {
+        x: 12px;
+        y: (parent.height - self.height) / 2;
+        width: serviceText.width + 20px;
+        height: 28px;
+        border-radius: Theme.radiusSmall;
+        background: Theme.panel;
+        border-color: Theme.accent;
+        border-width: 1px;
+        serviceText := Text {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            text: Backend.serviceId;
+            color: Theme.textPrimary;
+            font-size: Theme.fontSizeBase;
+            font-weight: 700;
+        }
+    }
+
+    Rectangle { // driving mode badge
+        x: serviceBadge.x + serviceBadge.width + 8px;
+        y: (parent.height - self.height) / 2;
+        width: modeText.width + 20px;
+        height: 28px;
+        border-radius: Theme.radiusSmall;
+        background: Backend.emergencyBrake ? Theme.dangerDim
+            : Backend.afbEnabled ? Theme.buttonFaceActive : Theme.panel;
+        border-color: Backend.emergencyBrake ? Theme.danger
+            : Backend.afbEnabled ? Theme.accent : Theme.line;
+        border-width: 1px;
+        modeText := Text {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            text: Backend.emergencyBrake ? "EMERGENCY"
+                : Backend.afbEnabled ? "AFB " + round(Backend.afbSetKmh) : "MANUAL";
+            color: Backend.emergencyBrake ? Theme.danger
+                : Backend.afbEnabled ? Theme.accent : Theme.textSecondary;
+            font-size: Theme.fontSizeBase;
+            font-weight: 700;
+        }
+    }
+
+    Rectangle { // alert ticker, centred
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 440px;
+        height: 30px;
+        border-radius: Theme.radiusSmall;
+        background: !Backend.hasAlert ? transparent
+            : Backend.alertSeverity == 2 ? Theme.dangerDim : Theme.panel;
+        border-color: !Backend.hasAlert ? transparent
+            : root.severityBorder[Backend.alertSeverity];
+        border-width: 1px;
+
+        Text {
+            x: 8px;
+            y: (parent.height - self.height) / 2;
+            width: parent.width - 16px;
+            horizontal-alignment: center;
+            overflow: elide;
+            text: Backend.alertText;
+            color: !Backend.hasAlert ? Theme.textDim
+                : root.severityText[Backend.alertSeverity];
+            font-size: Theme.fontSizeBase;
+            font-weight: Backend.hasAlert && Backend.alertSeverity > 0 ? 700 : 400;
+            opacity: Backend.alertSeverity == 2 && !root.blinkOn ? 0.35 : 1.0;
+        }
+    }
+
+    clockText := Text {
+        x: parent.width - 12px - self.width;
+        y: (parent.height - self.height) / 2;
+        text: Backend.clockText;
+        color: Theme.textPrimary;
+        font-size: Theme.fontSizeMedium;
+        font-family: "DejaVu Sans Mono";
+        font-weight: 700;
+    }
+
+    stationText := Text {
+        x: clockText.x - 8px - self.width;
+        y: (parent.height - self.height) / 2;
+        text: Backend.nextStationText;
+        color: Theme.textSecondary;
+        font-size: Theme.fontSizeBase;
+    }
+
+    paBadge := MiniBadge {
+        x: stationText.x - 8px - self.width;
+        y: (parent.height - self.height) / 2;
+        label: "PA";
+        on: Backend.paActive;
+        onColor: Theme.accent;
+    }
+    radBadge := MiniBadge {
+        x: paBadge.x - 8px - self.width;
+        y: (parent.height - self.height) / 2;
+        label: "RAD";
+        on: Backend.radioState != 0;
+        onColor: Backend.radioState == 1 ? Theme.yellow : Theme.accent;
+    }
+    MiniBadge {
+        x: radBadge.x - 8px - self.width;
+        y: (parent.height - self.height) / 2;
+        label: "PAN";
+        on: Backend.pantographUp;
+        onColor: Theme.ok;
+    }
+}

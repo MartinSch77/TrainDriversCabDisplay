@@ -1,0 +1,85 @@
+// RailDeck Pro - Slint frontend: bridge to the traincore simulation.
+// The C++ layer (src/main.cpp) refreshes these properties from one TrainState
+// snapshot per tick and forwards operator input through the callbacks - the
+// Slint counterpart of the Qt TrainBackend adapter (REQ-N-001). Values that
+// need printf-style formatting (fixed decimals) arrive pre-formatted; raw
+// numbers are exposed wherever the UI computes geometry from them.
+
+// Mirror of traincore::Command (same names, same order).
+export enum CabCommand {
+    SifaAcknowledge, PaToggle, RadioToggle,
+    DoorsLeftRelease, DoorsLeftClose, DoorsRightRelease, DoorsRightClose,
+    PantographToggle, AfbToggle, AfbIncrease, AfbDecrease, EmergencyBrakeToggle
+}
+
+// One route event for the planning strip (speed-limit change or station).
+export struct PlanEvent { absM: float, isStation: bool, label: string }
+
+export global Backend {
+    // Motion & supervision
+    in property <float> speedKmh;
+    in property <string> accelText;             // "+0.12"
+    in property <bool> accelNegative;
+    in property <float> permittedSpeedKmh;
+    in property <float> targetSpeedKmh;
+    in property <float> distanceToTargetM;      // < 0: no target
+    in property <string> distanceToTargetText;  // "800 m" / "1.2 km"
+    in property <bool> overspeedWarning;
+    in property <bool> brakeIntervention;
+
+    // Driver controls
+    in property <float> leverPercent;
+    in property <bool> emergencyBrake;
+    in property <bool> afbEnabled;
+    in property <float> afbSetKmh;
+    in property <int> advisor;                  // AdvisorHint: None..Brake
+
+    // Traction & electric
+    in property <float> tractionEffortKn;
+    in property <string> effortText;            // "+118"
+    in property <string> powerText;             // "0.75" (abs value)
+    in property <bool> powerPositive;
+    in property <string> energyText;            // "173"
+    in property <float> lineVoltageKv;
+    in property <string> lineVoltageText;       // "15.1"
+    in property <float> motorCurrentA;
+    in property <string> motorCurrentText;      // "212"
+    in property <bool> pantographUp;
+
+    // Pneumatics
+    in property <float> brakePipeBar;
+    in property <string> brakePipeText;
+    in property <float> brakeCylinderBar;
+    in property <string> brakeCylinderText;
+    in property <float> mainReservoirBar;
+    in property <string> mainReservoirText;
+
+    // Vigilance / doors / comms
+    in property <int> sifaStage;                // SifaStage: Inactive..EmergencyBrake
+    in property <float> sifaCountdownS;
+    in property <int> doorLeft;                 // DoorState: Locked..Closing
+    in property <int> doorRight;
+    in property <bool> paActive;
+    in property <int> radioState;               // RadioState: Idle..Connected
+
+    // Journey
+    in property <string> clockText;             // "09:41:07"
+    in property <string> serviceId;
+    in property <string> nextStationText;       // "→ Hbf · 4.2 km"
+    in property <float> gradientPermille;
+    in property <string> gradientText;          // "▲ +5" / "▼ -3"
+    in property <float> routePositionM;
+    in property <float> routeLengthM;
+
+    // Alert ticker: current entry, cycled by the C++ layer every 3 s.
+    in property <string> alertText;
+    in property <int> alertSeverity;            // AlertSeverity: Info..Critical
+    in property <bool> hasAlert;
+
+    // Static route data for the planning strip / line-ahead preview.
+    in property <[PlanEvent]> planEvents;
+
+    // Operator input, forwarded 1:1 to the simulation core.
+    callback command(CabCommand);
+    callback setLever(float);
+}

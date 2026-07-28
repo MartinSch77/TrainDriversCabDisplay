@@ -13,6 +13,7 @@ GENERATE_TREEVIEW      = YES
 INPUT                  = core \
                          ui-qt/src \
                          ui-lvgl/src \
+                         ui-slint/src \
                          docs/mainpage.md \
                          docs/requirements.md \
                          docs/design.md \

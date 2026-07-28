@@ -4,14 +4,14 @@
 [![CodeQL](../../actions/workflows/codeql.yml/badge.svg)](../../actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A modern driver's cab display (train HMI) with **two interchangeable UI frontends —
-Qt Quick (QML) and LVGL — sharing one simulation core and one design-token set**,
-so both render the same instruments with the same look & feel.
+A modern driver's cab display (train HMI) with **three interchangeable UI frontends —
+Qt Quick (QML), LVGL and Slint — sharing one simulation core and one design-token
+set**, so all of them render the same instruments with the same look & feel.
 
-| Qt Quick frontend | LVGL frontend |
-|---|---|
-| ![Qt cab display](docs/screenshots/qt-cab.png) | ![LVGL cab display](docs/screenshots/lvgl-cab.png) |
-| ![Qt SIFA warning](docs/screenshots/qt-sifa-warning.png) | ![LVGL SIFA warning](docs/screenshots/lvgl-sifa-warning.png) |
+| Qt Quick frontend | LVGL frontend | Slint frontend |
+|---|---|---|
+| ![Qt cab display](docs/screenshots/qt-cab.png) | ![LVGL cab display](docs/screenshots/lvgl-cab.png) | ![Slint cab display](docs/screenshots/slint-cab.png) |
+| ![Qt SIFA warning](docs/screenshots/qt-sifa-warning.png) | ![LVGL SIFA warning](docs/screenshots/lvgl-sifa-warning.png) | ![Slint SIFA warning](docs/screenshots/slint-sifa-warning.png) |
 
 ## Features
 
@@ -28,7 +28,7 @@ so both render the same instruments with the same look & feel.
 - Line-ahead view: rails, sleepers and catenary masts moving with train speed,
   pitch/horizon follows the gradient, braking target as a yellow lineside board —
   real 3D (Qt Quick 3D) in the Qt frontend, perspective projection drawn with
-  primitives in the LVGL frontend
+  primitives in the LVGL and Slint frontends
 - Acceleration, next station + distance, service clock, odometer
 
 **Controls & safety systems**
@@ -58,8 +58,9 @@ so both render the same instruments with the same look & feel.
 ```
 design/theme.json          single source of truth for colors/fonts/metrics
    └── design/generate_tokens.py
-         ├── ui-qt/qml/Theme.qml     (generated QML singleton)
-         └── shared/theme_tokens.h   (generated C header)
+         ├── ui-qt/qml/Theme.qml       (generated QML singleton)
+         ├── shared/theme_tokens.h     (generated C header)
+         └── ui-slint/ui/Theme.slint   (generated Slint global)
 
 core/                      traincore — pure C++17, no UI dependency
    ├── train_types.h       TrainState snapshot, Command enum, route types
@@ -67,6 +68,7 @@ core/                      traincore — pure C++17, no UI dependency
 
 ui-qt/                     Qt Quick frontend (QML, Qt 6.5+, tested 6.10/6.11)
 ui-lvgl/                   LVGL v9.3 frontend (SDL2 desktop simulator)
+ui-slint/                  Slint 1.17 frontend (prebuilt C++ package, no Rust needed)
 tests/                     core smoke tests (ctest)
 ```
 
@@ -77,26 +79,33 @@ calls `tick(dt)` from its own timer, forwards operator input through exactly two
 entry points — `setLever(percent)` and `command(Command)` — and renders the
 `TrainState` snapshot. Nothing else crosses the boundary.
 
-To port the HMI to another UI technology (e.g. Slint, Flutter, web):
+To port the HMI to another UI technology (e.g. Flutter, web):
 1. render `TrainState` (all displayed values live there),
 2. map your widgets' events to `Command` values and the lever to `setLever()`,
 3. generate your color/font constants from `design/theme.json`
    (extend `generate_tokens.py` with a new emitter).
 
+The Slint frontend (`ui-slint/`) is exactly such a port: ~150 lines of C++
+(`src/main.cpp`) bridge the core to declarative `.slint` markup, and
+`generate_tokens.py` gained a third emitter for `Theme.slint`.
+
 ## Building
 
 Requirements: CMake ≥ 3.21, C++17 compiler; Qt 6.5+ for the Qt frontend;
-SDL2 for the LVGL frontend (LVGL v9.3 is fetched automatically).
+SDL2 for the LVGL frontend (LVGL v9.3 is fetched automatically; the Slint
+frontend needs nothing extra — the official prebuilt Slint C++ package is
+fetched automatically too, no Rust toolchain required).
 
 ```bash
-# both frontends
+# all three frontends
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=~/Qt/6.10.2/gcc_64 \
-      -DRAILDECK_UI=both          # or: qt | lvgl
+      -DRAILDECK_UI=all           # or: qt | lvgl | slint | both (= qt+lvgl)
 cmake --build build
 
 ./build/ui-qt/raildeck-qt          # Qt Quick frontend
 ./build/ui-lvgl/raildeck-lvgl      # LVGL frontend
+./build/ui-slint/raildeck-slint    # Slint frontend
 ctest --test-dir build             # core smoke tests
 ```
 
@@ -112,14 +121,15 @@ used from inside WSL — use a Linux Qt kit there (e.g. `~/Qt/6.10.2/gcc_64`).
 
 ### Verification screenshots
 
-Both binaries support headless verification:
+All three binaries support headless verification:
 
 ```bash
-raildeck-qt   --screenshot out.png [--screenshot-delay ms]
-raildeck-lvgl --screenshot out.bmp [--screenshot-delay ms]
+raildeck-qt    --screenshot out.png [--screenshot-delay ms]
+raildeck-lvgl  --screenshot out.bmp [--screenshot-delay ms]
+raildeck-slint --screenshot out.bmp [--screenshot-delay ms]   # SLINT_BACKEND=winit-software under xvfb
 ```
 
-## Keyboard controls (Qt frontend)
+## Keyboard controls (Qt and Slint frontends)
 
 | Key | Action | Key | Action |
 |---|---|---|---|
@@ -134,7 +144,7 @@ The LVGL frontend is touch/mouse-driven (all functions on the button bar).
 
 ## Design tokens
 
-Edit `design/theme.json`, then regenerate both frontends' constants:
+Edit `design/theme.json`, then regenerate all frontends' constants:
 
 ```bash
 python3 design/generate_tokens.py

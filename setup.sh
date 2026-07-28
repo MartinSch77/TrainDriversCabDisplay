@@ -9,11 +9,16 @@
 # What it manages
 #   apt    build-essential, ninja, git, SDL2 dev (LVGL simulator),
 #          clang-18 + LLVM tools, clang-tidy, cppcheck, clazy, valgrind,
-#          lcov, doxygen/graphviz, python3 + pipx, Qt xcb/OpenGL runtime libs
+#          lcov, doxygen/graphviz, python3 + pipx, Qt xcb/OpenGL runtime libs,
+#          DejaVu fonts (monospace readouts in all three frontends)
 #   pipx   cmake (>= 3.21 — distro cmake is often too old), strictdoc,
 #          aqtinstall, codespell
 #   aqt    Qt ${QT_VERSION} (gcc_64 + qtquick3d) into ~/Qt — the layout the
 #          build scripts expect (override with QT_PREFIX at build time)
+#
+# The Slint frontend needs no provisioning here: CMake fetches the official
+# prebuilt Slint C++ package (compiler + library) at configure time, the same
+# way the LVGL sources are fetched.
 #
 # NOT installable here (license-bound, detected + reported only):
 #   Axivion Suite (~/bauhaus-suite + dashboard) and Squish Coco
@@ -44,6 +49,7 @@ APT_PKGS=(
     libxkbcommon0 libxkbcommon-x11-0 libfontconfig1 libfreetype6 libdbus-1-3
     libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0
     libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+    fonts-dejavu-core
 )
 PIPX_PKGS=(cmake strictdoc aqtinstall codespell)
 
@@ -72,6 +78,9 @@ status() {
     done
     echo "== Qt kit =="
     printf '  %-18s %s\n' "Qt $QT_VERSION" "$([ -d "$QT_DIR/$QT_VERSION/gcc_64" ] && echo "$QT_DIR/$QT_VERSION/gcc_64" || echo MISSING)"
+    echo "== Slint (prebuilt, fetched by CMake at configure time) =="
+    SLINT_COMPILER_BIN="$(find "$(dirname "$0")/build/_deps" -name slint-compiler -type f 2>/dev/null | head -1)"
+    printf '  %-18s %s\n' "Slint C++" "$([ -n "$SLINT_COMPILER_BIN" ] && "$SLINT_COMPILER_BIN" --version 2>/dev/null || echo "not fetched yet (cmake -DRAILDECK_UI=slint|all)")"
     echo "== license-bound (optional) =="
     printf '  %-18s %s\n' "Axivion Suite" "$(version_of axivion || echo "not found (~/bauhaus-suite)")"
     printf '  %-18s %s\n' "Squish Coco" "$(version_of coco || echo "not found (/opt/SquishCoco)")"

@@ -1,0 +1,131 @@
+// Combined power/brake lever (master controller), -100 .. +100 %.
+// Left of centre: service brake, right of centre: traction.
+// Follows the backend while the cruise control (AFB) drives it.
+import { Theme } from "Theme.slint";
+
+export component LeverControl inherits Rectangle {
+    in property <float> syncValue;      // backend lever position
+    in property <bool> afbControlled;
+    callback moved(float);
+
+    // Show the drag position while the driver holds the lever, otherwise
+    // follow the simulation (the Slint form of the Qt externalSync()).
+    property <float> dragValue;
+    property <float> value: (ta.pressed && !root.afbControlled) ? root.dragValue
+                                                                : root.syncValue;
+
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    pure function xFor(v: float) -> length {
+        return track.width * (v + 100) / 200;
+    }
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: 7px;
+        text: root.afbControlled ? "MASTER CONTROLLER — AFB" : "MASTER CONTROLLER";
+        color: root.afbControlled ? Theme.accent : Theme.textSecondary;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+
+    track := Rectangle {
+        x: 28px;
+        y: (parent.height - self.height) / 2 + 8px;
+        width: parent.width - 56px;
+        height: 34px;
+
+        Rectangle { // groove
+            y: (parent.height - self.height) / 2;
+            width: parent.width;
+            height: 10px;
+            border-radius: 5px;
+            background: Theme.gaugeTrack;
+        }
+
+        Rectangle { // brake side fill
+            x: root.xFor(min(root.value, 0));
+            y: (parent.height - self.height) / 2;
+            width: root.xFor(0) - self.x;
+            height: 10px;
+            border-radius: 5px;
+            background: Theme.warn;
+            visible: root.value < 0;
+        }
+        Rectangle { // traction side fill
+            x: root.xFor(0);
+            y: (parent.height - self.height) / 2;
+            width: root.xFor(max(root.value, 0)) - self.x;
+            height: 10px;
+            border-radius: 5px;
+            background: Theme.traction;
+            visible: root.value > 0;
+        }
+
+        Rectangle { // centre detent
+            x: root.xFor(0) - 1px;
+            y: (parent.height - self.height) / 2;
+            width: 2px;
+            height: 22px;
+            background: Theme.textSecondary;
+        }
+
+        Rectangle { // handle
+            x: root.xFor(root.value) - self.width / 2;
+            y: 0;
+            width: 18px;
+            height: 34px;
+            border-radius: 6px;
+            background: root.afbControlled ? Theme.accentDim : Theme.textPrimary;
+            border-color: root.afbControlled ? Theme.accent : Theme.lineBright;
+            border-width: 1px;
+        }
+
+        ta := TouchArea {
+            enabled: !root.afbControlled;
+            pointer-event(ev) => {
+                if (ev.kind == PointerEventKind.down) {
+                    root.dragValue = clamp(self.mouse-x / self.width * 200 - 100, -100, 100);
+                    root.moved(root.dragValue);
+                }
+                if (ev.kind == PointerEventKind.up && abs(root.dragValue) < 8) {
+                    root.dragValue = 0;
+                    root.moved(0);
+                }
+            }
+            moved => {
+                root.dragValue = clamp(self.mouse-x / self.width * 200 - 100, -100, 100);
+                root.moved(root.dragValue);
+            }
+        }
+    }
+
+    Text {
+        x: 12px;
+        y: parent.height - 8px - self.height;
+        text: "BRAKE";
+        color: Theme.warn;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+    Text {
+        x: parent.width - 12px - self.width;
+        y: parent.height - 8px - self.height;
+        text: "TRACTION";
+        color: Theme.traction;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - 6px - self.height;
+        text: (root.value > 0 ? "+" : "") + round(root.value) + " %";
+        color: Theme.textPrimary;
+        font-size: Theme.fontSizeBase;
+        font-family: "DejaVu Sans Mono";
+        font-weight: 700;
+    }
+}

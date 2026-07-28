@@ -1,0 +1,47 @@
+// Standard cab push button: label + state line, latched "active" look,
+// optional pulsing alarm state (600 ms period, mirroring the Qt animation).
+import { Theme } from "Theme.slint";
+
+export component CabButton inherits Rectangle {
+    in property <string> label;
+    in property <string> sub;
+    in property <bool> active;
+    in property <bool> alarm;
+    in property <color> activeColor: Theme.accent;
+    in property <bool> btnEnabled: true;
+    callback clicked;
+
+    property <bool> blinkOn: mod(animation-tick(), 600ms) < 300ms;
+
+    border-radius: Theme.radius;
+    background: !root.btnEnabled ? Theme.panelInset
+        : ta.pressed ? Theme.buttonFace.brighter(0.4)
+        : root.active ? Theme.buttonFaceActive : Theme.buttonFace;
+    border-color: root.alarm ? (root.blinkOn ? Theme.sifaPulse : Theme.buttonBorder)
+        : root.active ? root.activeColor : Theme.buttonBorder;
+    border-width: (root.active || root.alarm) ? 2px : Theme.borderWidth;
+    opacity: root.btnEnabled ? 1.0 : 0.45;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: parent.height / 2 + (root.sub == "" ? -self.height / 2 : -10px - self.height / 2);
+        text: root.label;
+        color: root.active ? root.activeColor : Theme.textPrimary;
+        font-size: Theme.fontSizeBase;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+    if root.sub != "": Text {
+        x: (parent.width - self.width) / 2;
+        y: parent.height / 2 + 11px - self.height / 2;
+        text: root.sub;
+        color: root.alarm ? Theme.danger
+            : root.active ? root.activeColor : Theme.textDim;
+        font-size: Theme.fontSizeSmall;
+    }
+
+    ta := TouchArea {
+        enabled: root.btnEnabled;
+        clicked => { root.clicked(); }
+    }
+}

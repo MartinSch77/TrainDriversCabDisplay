@@ -6,8 +6,9 @@
 # plus one merged CSV as a single-file overview. Exit code 1 when any tool
 # reported findings.
 #
-# Analyzed scope: core/, ui-qt/src/, ui-lvgl/src/ (LVGL itself is fetched
-# third-party code and excluded).
+# Analyzed scope: core/, ui-qt/src/, ui-lvgl/src/, ui-slint/src/ (LVGL and
+# Slint themselves are fetched third-party code and excluded, as is the
+# C++ code the slint-compiler generates into the build tree).
 #
 # Usage: tools/static_analysis.sh [build-dir] [--fix]
 #        (needs compile_commands.json; configure with
@@ -26,7 +27,7 @@ BUILD_DIR="${ARGS[0]:-build}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/analysis-results"
 mkdir -p "$OUT"
-SOURCES=("$ROOT"/core/src/*.cpp "$ROOT"/ui-qt/src/*.cpp "$ROOT"/ui-lvgl/src/*.cpp)
+SOURCES=("$ROOT"/core/src/*.cpp "$ROOT"/ui-qt/src/*.cpp "$ROOT"/ui-lvgl/src/*.cpp "$ROOT"/ui-slint/src/*.cpp)
 QT_SOURCES=("$ROOT"/ui-qt/src/*.cpp)
 
 if [ "$FIX" -eq 1 ]; then
@@ -88,7 +89,7 @@ import concurrent.futures as cf
 import json, os, re, shlex, subprocess, sys
 
 db_path, root, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
-prefixes = tuple(os.path.join(root, d) + os.sep for d in ("core", "ui-qt", "ui-lvgl"))
+prefixes = tuple(os.path.join(root, d) + os.sep for d in ("core", "ui-qt", "ui-lvgl", "ui-slint"))
 entries = [e for e in json.load(open(db_path)) if e["file"].startswith(prefixes)]
 located = re.compile(r"^(/[^:]+):(\d+):(\d+): warning: .*\[-Wanalyzer-[^\]]+\]$")
 
@@ -143,7 +144,7 @@ if command -v codespell >/dev/null 2>&1; then
     echo "== codespell ($(codespell --version 2>&1)) =="
     # Typos in comments, docs and scripts; config in .codespellrc. Output is
     # normalized to the pipe format so it lands on the Axivion dashboard.
-    (cd "$ROOT" && codespell core ui-qt ui-lvgl/src ui-lvgl/lv_conf.h tests design docs/*.md tools *.md *.sh requirements .github .claude 2>/dev/null) \
+    (cd "$ROOT" && codespell core ui-qt ui-lvgl/src ui-lvgl/lv_conf.h ui-slint tests design docs/*.md tools *.md *.sh requirements .github .claude 2>/dev/null) \
         | sed -E 's#^([^:]+):([0-9]+): (.*)$#\1|\2|warning|codespell|\3#' \
         > "$OUT/codespell.txt" || true
     CODESPELL_N=$(grep -c . "$OUT/codespell.txt" || true)

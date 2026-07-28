@@ -1,0 +1,43 @@
+// Driver advisory system hint: the most energy-efficient action right now.
+import { Theme } from "Theme.slint";
+
+export component AdvisorPanel inherits Rectangle {
+    in property <int> hint;   // AdvisorHint: None, Power, Hold, Coast, Brake
+
+    property <[string]> glyphs: ["", "▲", "■", "▼", "▼"];
+    property <[string]> labels: ["", "POWER", "HOLD", "COAST", "BRAKE"];
+    property <[color]> hintColors: [Theme.textDim, Theme.accent, Theme.textSecondary,
+                                    Theme.yellow, Theme.warn];
+
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: 7px;
+        text: "ADVISOR";
+        color: Theme.textSecondary;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+
+    glyphText := Text {
+        x: (parent.width - self.width) / 2;
+        y: parent.height / 2 + 8px - 18px - self.height / 2;
+        text: root.hint > 0 ? root.glyphs[root.hint] : "–";
+        color: root.hintColors[root.hint];
+        font-size: 34px;
+        font-weight: 700;
+    }
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: glyphText.y + glyphText.height;
+        text: root.hint > 0 ? root.labels[root.hint] : "IDLE";
+        color: root.hintColors[root.hint];
+        font-size: Theme.fontSizeBase;
+        font-weight: 700;
+        letter-spacing: 2px;
+    }
+}

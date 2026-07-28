@@ -1,0 +1,293 @@
+// RailDeck Pro - driver's cab display, Slint frontend.
+// 1280x800, dark cab theme, all state from the traincore simulation via the
+// Backend global (filled by src/main.cpp). Mirrors the Qt Quick layout 1:1,
+// styled exclusively from the generated Theme.slint design tokens.
+import { Theme } from "Theme.slint";
+import { Backend, CabCommand, PlanEvent } from "Backend.slint";
+import { StatusBar } from "StatusBar.slint";
+import { ArcGauge, GaugeZone } from "ArcGauge.slint";
+import { Speedometer } from "Speedometer.slint";
+import { AdvisorPanel } from "AdvisorPanel.slint";
+import { LeverControl } from "LeverControl.slint";
+import { EffortBar } from "EffortBar.slint";
+import { InfoTile } from "InfoTile.slint";
+import { CabButton } from "CabButton.slint";
+import { PlanningStrip } from "PlanningStrip.slint";
+import { LineAhead } from "LineAhead.slint";
+
+export { Backend, CabCommand, PlanEvent }
+
+export component MainWindow inherits Window {
+    width: 1280px;
+    height: 800px;
+    title: "RailDeck Pro — Cab Display (Slint)";
+    background: Theme.bg;
+    default-font-size: Theme.fontSizeBase;
+    forward-focus: keys;
+
+    property <bool> standstill: Backend.speedKmh < 0.5;
+    property <[string]> doorTexts: ["LOCKED", "RELEASED", "OPENING", "OPEN", "CLOSING"];
+    property <[string]> radioTexts: ["CONTROL CTR", "CALLING…", "ONLINE"];
+
+    // ------- keyboard controls (same bindings as the Qt frontend) -------
+    keys := FocusScope {
+        key-pressed(e) => {
+            if (e.text == " ") { Backend.command(CabCommand.SifaAcknowledge); return accept; }
+            if (e.text == Key.UpArrow || e.text == "w") {
+                Backend.setLever(Backend.leverPercent + 10); return accept;
+            }
+            if (e.text == Key.DownArrow || e.text == "s") {
+                Backend.setLever(Backend.leverPercent - 10); return accept;
+            }
+            if (e.text == "x") { Backend.setLever(0); return accept; }
+            if (e.text == "q") { Backend.command(CabCommand.PaToggle); return accept; }
+            if (e.text == "c") { Backend.command(CabCommand.RadioToggle); return accept; }
+            if (e.text == "t") { Backend.command(CabCommand.PantographToggle); return accept; }
+            if (e.text == "a") { Backend.command(CabCommand.AfbToggle); return accept; }
+            if (e.text == "+") { Backend.command(CabCommand.AfbIncrease); return accept; }
+            if (e.text == "-") { Backend.command(CabCommand.AfbDecrease); return accept; }
+            if (e.text == "e") { Backend.command(CabCommand.EmergencyBrakeToggle); return accept; }
+            if (e.text == "1") { Backend.command(CabCommand.DoorsLeftRelease); return accept; }
+            if (e.text == "2") { Backend.command(CabCommand.DoorsLeftClose); return accept; }
+            if (e.text == "3") { Backend.command(CabCommand.DoorsRightRelease); return accept; }
+            if (e.text == "4") { Backend.command(CabCommand.DoorsRightClose); return accept; }
+            return reject;
+        }
+    }
+
+    StatusBar {
+        x: 0; y: 0;
+        width: parent.width;
+        height: Theme.headerHeight;
+    }
+
+    // ------- left column: pneumatics -------
+    ArcGauge {
+        x: 12px; y: 58px; width: 225px; height: 172px;
+        title: "BRAKE PIPE"; unit: "bar";
+        value: Backend.brakePipeBar; valueText: Backend.brakePipeText;
+        from: 0; to: 6; majorTicks: 6;
+        zones: [
+            { from: 0.0, to: 3.2, zoneColor: Theme.danger },
+            { from: 4.6, to: 5.2, zoneColor: Theme.ok }
+        ];
+    }
+    ArcGauge {
+        x: 12px; y: 240px; width: 225px; height: 172px;
+        title: "BRAKE CYLINDER"; unit: "bar";
+        value: Backend.brakeCylinderBar; valueText: Backend.brakeCylinderText;
+        from: 0; to: 5; majorTicks: 5;
+        zones: [{ from: 3.8, to: 5.0, zoneColor: Theme.warn }];
+    }
+    ArcGauge {
+        x: 12px; y: 422px; width: 225px; height: 172px;
+        title: "MAIN RESERVOIR"; unit: "bar";
+        value: Backend.mainReservoirBar; valueText: Backend.mainReservoirText;
+        from: 0; to: 11; majorTicks: 11;
+        zones: [
+            { from: 0.0, to: 6.5, zoneColor: Theme.danger },
+            { from: 8.0, to: 10.0, zoneColor: Theme.ok }
+        ];
+    }
+    InfoTile {
+        x: 12px; y: 604px; width: 225px; height: 58px;
+        title: "ACCELERATION";
+        value: Backend.accelText;
+        unit: "m/s²";
+        valueColor: Backend.accelNegative ? Theme.warn : Theme.textPrimary;
+    }
+
+    // ------- centre: speed + driving -------
+    Speedometer {
+        x: 264px; y: 58px; width: 470px; height: 470px;
+        speed: Backend.speedKmh;
+        permitted: Backend.permittedSpeedKmh;
+        target: Backend.targetSpeedKmh;
+        distanceToTarget: Backend.distanceToTargetM;
+        distanceText: Backend.distanceToTargetText;
+        warning: Backend.overspeedWarning;
+        intervention: Backend.brakeIntervention;
+        afbEnabled: Backend.afbEnabled;
+        afbSet: Backend.afbSetKmh;
+    }
+    AdvisorPanel {
+        x: 249px; y: 538px; width: 110px; height: 122px;
+        hint: Backend.advisor;
+    }
+    LeverControl {
+        x: 369px; y: 538px; width: 380px; height: 122px;
+        syncValue: Backend.leverPercent;
+        afbControlled: Backend.afbEnabled;
+        moved(percent) => { Backend.setLever(percent); }
+    }
+
+    // ------- right column: traction & electric -------
+    ArcGauge {
+        x: 761px; y: 58px; width: 225px; height: 172px;
+        title: "LINE VOLTAGE"; unit: "kV";
+        value: Backend.lineVoltageKv; valueText: Backend.lineVoltageText;
+        from: 0; to: 18; majorTicks: 6;
+        zones: [
+            { from: 0.0, to: 11.0, zoneColor: Theme.danger },
+            { from: 13.5, to: 16.5, zoneColor: Theme.ok }
+        ];
+    }
+    ArcGauge {
+        x: 761px; y: 240px; width: 225px; height: 172px;
+        title: "MOTOR CURRENT"; unit: "A";
+        value: Backend.motorCurrentA; valueText: Backend.motorCurrentText;
+        from: 0; to: 400; majorTicks: 8;
+        zones: [{ from: 320, to: 400, zoneColor: Theme.warn }];
+    }
+    EffortBar {
+        x: 761px; y: 422px; width: 225px; height: 190px;
+        value: Backend.tractionEffortKn;
+        valueText: Backend.effortText;
+    }
+    InfoTile {
+        x: 761px; y: 622px; width: 107px; height: 58px;
+        title: "POWER";
+        value: Backend.powerText;
+        unit: "MW";
+        valueColor: Backend.powerPositive ? Theme.traction : Theme.regen;
+    }
+    InfoTile {
+        x: 879px; y: 622px; width: 107px; height: 58px;
+        title: "ENERGY";
+        value: Backend.energyText;
+        unit: "kWh";
+    }
+
+    // ------- route preview -------
+    LineAhead {
+        x: 998px; y: 58px; width: 270px; height: 240px;
+        gradientPermille: Backend.gradientPermille;
+        routePositionM: Backend.routePositionM;
+        distanceToTargetM: Backend.distanceToTargetM;
+    }
+    PlanningStrip {
+        x: 998px; y: 308px; width: 270px; height: 320px;
+        events: Backend.planEvents;
+        routePositionM: Backend.routePositionM;
+        routeLengthM: Backend.routeLengthM;
+        distanceToTargetM: Backend.distanceToTargetM;
+    }
+    InfoTile {
+        x: 998px; y: 638px; width: 270px; height: 54px;
+        title: "GRADIENT";
+        value: Backend.gradientText;
+        unit: "mm/m";
+        valueColor: Backend.gradientPermille > 0 ? Theme.gradientCut : Theme.ok;
+    }
+
+    // ------- button bar -------
+    Rectangle {
+        x: 0; y: 704px;
+        width: parent.width;
+        height: 96px;
+        background: Theme.panelInset;
+        border-color: Theme.line;
+        border-width: Theme.borderWidth;
+
+        CabButton { // vigilance / dead man's acknowledge
+            x: 12px; y: 12px; width: 140px; height: 72px;
+            label: "SIFA";
+            sub: Backend.sifaStage == 0 ? "STANDBY"
+                : Backend.sifaStage == 1 ? ceil(Backend.sifaCountdownS) + " s"
+                : Backend.sifaStage == 4 ? "PENALTY BRAKE"
+                : "ACK NOW · " + ceil(Backend.sifaCountdownS) + " s";
+            active: Backend.sifaStage >= 2;
+            alarm: Backend.sifaStage >= 2;
+            activeColor: Theme.danger;
+            clicked => { Backend.command(CabCommand.SifaAcknowledge); }
+        }
+
+        CabButton {
+            x: 160px; y: 12px; width: 96px; height: 72px;
+            label: "PA";
+            sub: Backend.paActive ? "LIVE" : "PASSENGERS";
+            active: Backend.paActive;
+            clicked => { Backend.command(CabCommand.PaToggle); }
+        }
+        CabButton {
+            x: 264px; y: 12px; width: 96px; height: 72px;
+            label: "RADIO";
+            sub: root.radioTexts[Backend.radioState];
+            active: Backend.radioState != 0;
+            clicked => { Backend.command(CabCommand.RadioToggle); }
+        }
+
+        Rectangle { x: 363px; y: 20px; width: 1px; height: 56px; background: Theme.line; }
+
+        CabButton {
+            x: 368px; y: 12px; width: 104px; height: 72px;
+            label: "L RELEASE";
+            sub: root.doorTexts[Backend.doorLeft];
+            active: Backend.doorLeft != 0;
+            activeColor: Theme.doorOpen;
+            btnEnabled: root.standstill || Backend.doorLeft != 0;
+            clicked => { Backend.command(CabCommand.DoorsLeftRelease); }
+        }
+        CabButton {
+            x: 480px; y: 12px; width: 104px; height: 72px;
+            label: "L CLOSE";
+            sub: "DOORS LEFT";
+            activeColor: Theme.doorClosed;
+            clicked => { Backend.command(CabCommand.DoorsLeftClose); }
+        }
+        CabButton {
+            x: 592px; y: 12px; width: 104px; height: 72px;
+            label: "R RELEASE";
+            sub: root.doorTexts[Backend.doorRight];
+            active: Backend.doorRight != 0;
+            activeColor: Theme.doorOpen;
+            btnEnabled: root.standstill || Backend.doorRight != 0;
+            clicked => { Backend.command(CabCommand.DoorsRightRelease); }
+        }
+        CabButton {
+            x: 704px; y: 12px; width: 104px; height: 72px;
+            label: "R CLOSE";
+            sub: "DOORS RIGHT";
+            activeColor: Theme.doorClosed;
+            clicked => { Backend.command(CabCommand.DoorsRightClose); }
+        }
+
+        Rectangle { x: 811px; y: 20px; width: 1px; height: 56px; background: Theme.line; }
+
+        CabButton {
+            x: 816px; y: 12px; width: 96px; height: 72px;
+            label: "PANTO";
+            sub: Backend.pantographUp ? "UP" : "DOWN";
+            active: Backend.pantographUp;
+            activeColor: Theme.ok;
+            clicked => { Backend.command(CabCommand.PantographToggle); }
+        }
+        CabButton {
+            x: 920px; y: 12px; width: 96px; height: 72px;
+            label: "AFB";
+            sub: Backend.afbEnabled ? round(Backend.afbSetKmh) + " km/h" : "CRUISE";
+            active: Backend.afbEnabled;
+            clicked => { Backend.command(CabCommand.AfbToggle); }
+        }
+        CabButton {
+            x: 1024px; y: 12px; width: 52px; height: 72px;
+            label: "−";
+            clicked => { Backend.command(CabCommand.AfbDecrease); }
+        }
+        CabButton {
+            x: 1084px; y: 12px; width: 52px; height: 72px;
+            label: "+";
+            clicked => { Backend.command(CabCommand.AfbIncrease); }
+        }
+
+        CabButton {
+            x: 1148px; y: 12px; width: 120px; height: 72px;
+            label: "EMERG";
+            sub: Backend.emergencyBrake ? "APPLIED" : "BRAKE";
+            active: Backend.emergencyBrake;
+            alarm: Backend.emergencyBrake;
+            activeColor: Theme.danger;
+            clicked => { Backend.command(CabCommand.EmergencyBrakeToggle); }
+        }
+    }
+}

@@ -4,3 +4,7 @@
 // (handled by --library=qt; add project-specific entries below)
 missingIncludeSystem
 unusedFunction
+// Slint's generated UI header (build/ui-slint/Main.h) uses library macros
+// (SLINT_VERSION_STRING) cppcheck has no configuration for — generated
+// third-party output, same category as the excluded moc/LVGL sources.
+unknownMacro:*ui-slint/Main.h

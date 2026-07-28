@@ -73,5 +73,6 @@ Checks: >
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay
 WarningsAsErrors: ''
-HeaderFilterRegex: '(core|ui-qt|ui-lvgl|tests)/.*'
+# ui-slint is scoped to src/ so the generated Main.h (build/ui-slint/) stays out.
+HeaderFilterRegex: '(core|ui-qt|ui-lvgl|ui-slint/src|tests)/.*'
 FormatStyle: none

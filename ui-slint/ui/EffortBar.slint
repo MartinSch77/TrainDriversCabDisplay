@@ -1,0 +1,78 @@
+// Bipolar tractive-effort bar: traction upwards (cyan), electrodynamic
+// braking downwards (green, regenerating).
+import { Theme } from "Theme.slint";
+
+export component EffortBar inherits Rectangle {
+    in property <float> value;          // kN, +traction / -braking
+    in property <string> valueText;     // "+118"
+    in property <float> range: 250;     // +- kN
+
+    property <float> frac: clamp(root.value / root.range, -1, 1);
+
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-color: Theme.line;
+    border-width: Theme.borderWidth;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: 7px;
+        text: "EFFORT";
+        color: Theme.textSecondary;
+        font-size: Theme.fontSizeSmall;
+        letter-spacing: 1px;
+    }
+
+    track := Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: 30px;
+        width: 26px;
+        height: 112px;
+        border-radius: 5px;
+        background: Theme.gaugeTrack;
+
+        Rectangle { // filled amount from center
+            x: 0;
+            y: root.frac >= 0 ? parent.height / 2 * (1 - root.frac) : parent.height / 2;
+            width: parent.width;
+            height: abs(root.frac) * parent.height / 2;
+            border-radius: 5px;
+            background: root.frac >= 0 ? Theme.traction : Theme.regen;
+            animate height { duration: 100ms; }
+        }
+
+        Rectangle { // zero line
+            x: 0;
+            y: parent.height / 2 - 1px;
+            width: parent.width;
+            height: 2px;
+            background: Theme.textSecondary;
+        }
+    }
+
+    for i in 11: Rectangle { // side ticks every 50 kN
+        x: track.x - 8px;
+        y: track.y + track.height * i / 10 - 1px;
+        width: 6px;
+        height: i == 5 ? 2px : 1px;
+        background: Theme.gaugeTick;
+    }
+
+    Text {
+        x: track.x - 12px - self.width;
+        y: track.y;
+        text: "kN";
+        color: Theme.textDim;
+        font-size: Theme.fontSizeSmall;
+    }
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - 10px - self.height;
+        text: root.valueText;
+        color: root.value >= 0 ? Theme.traction : Theme.regen;
+        font-size: Theme.fontSizeLarge;
+        font-family: "DejaVu Sans Mono";
+        font-weight: 700;
+    }
+}
