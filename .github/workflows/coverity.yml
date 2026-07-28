@@ -65,7 +65,7 @@ jobs:
             echo "::notice::COVERITY_SCAN_TOKEN not set — Coverity upload skipped (setup steps in .github/workflows/coverity.yml)"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.guard.outputs.run == 'true'
 
       - name: Install Qt (with Quick 3D)
