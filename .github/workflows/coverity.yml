@@ -98,7 +98,7 @@ jobs:
       - name: Cache Coverity build tool
         if: steps.guard.outputs.run == 'true'
         id: covcache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: cov-analysis
           key: coverity-linux64-${{ steps.covkey.outputs.md5 }}
